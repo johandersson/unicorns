@@ -16,5 +16,12 @@ function love.draw()
 end
 
 function love.keypressed(key)
-    game:keypressed(key)
+    if key == 'escape' then
+        local result = love.window.showMessageBox("Exit", "Do you want to exit?", {"Yes", "No"}, "info", true)
+        if result == 1 then
+            love.event.quit()
+        end
+    else
+        game:keypressed(key)
+    end
 end
