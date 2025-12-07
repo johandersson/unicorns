@@ -30,3 +30,7 @@ busted spec/
 - `main.lua`: Main game file
 - `conf.lua`: LÖVE configuration
 - `spec/`: Unit tests directory
+
+## Assets
+
+- Unicorn sprite by magdum, licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/), sourced from [OpenGameArt](https://opengameart.org/content/running-unicorn)
