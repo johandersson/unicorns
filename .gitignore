@@ -1,0 +1,27 @@
+# LÖVE
+*.love
+
+# Lua
+.luarocks
+
+# OS
+Thumbs.db
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Build
+dist/
+
+# Logs
+*.log
+
+# Temp
+*.tmp
+
+# Downloaded files (e.g., luarocks zip)
+luarocks.zip
+luarocks/
+luarocks-installer.exe
