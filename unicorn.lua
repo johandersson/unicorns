@@ -55,51 +55,76 @@ function Unicorn:draw()
 end
 
 function drawUnicorn(x, y)
-    -- Body (slimmer pink oval, more horse-like, facing left)
+    -- Body (horse-like rectangle, facing right)
     love.graphics.setColor(1, 0.7, 0.8)
-    love.graphics.ellipse('fill', x - 5, y, 15, 20)  -- Shifted left
+    love.graphics.rectangle('fill', x - 5, y - 5, 25, 15)
 
-    -- Neck (elongated, angled left)
-    love.graphics.ellipse('fill', x - 8, y - 12, 8, 12)
+    -- Neck (longer, angled right)
+    love.graphics.ellipse('fill', x + 15, y - 15, 6, 18)
 
-    -- Head (small oval, facing left)
-    love.graphics.ellipse('fill', x - 12, y - 22, 10, 8)
+    -- Head (oval, facing right)
+    love.graphics.ellipse('fill', x + 18, y - 30, 8, 10)
 
-    -- Horn (longer, on the left side)
+    -- Horn glow (larger yellow behind)
+    love.graphics.setColor(1, 1, 0.5, 0.5)
+    love.graphics.polygon('fill', x + 23, y - 34, x + 21, y - 34, x + 17, y - 46)
+
+    -- Horn (curved, on the right side)
     love.graphics.setColor(1, 1, 0)
-    love.graphics.polygon('fill', x - 16, y - 28, x - 14, y - 28, x - 15, y - 40)
+    love.graphics.polygon('fill', x + 22, y - 35, x + 20, y - 35, x + 18, y - 45)
 
-    -- Eyes (on the left side of head)
+    -- Eyes (on the right side of head)
     love.graphics.setColor(0, 0, 0)
-    love.graphics.circle('fill', x - 18, y - 24, 2)
+    love.graphics.circle('fill', x + 24, y - 32, 1.5)
     love.graphics.setColor(1, 1, 1)
-    love.graphics.circle('fill', x - 17, y - 25, 0.5)
+    love.graphics.circle('fill', x + 23.5, y - 33, 0.5)
 
-    -- Mane (flowing left)
-    love.graphics.setColor(1, 1, 1)
-    love.graphics.arc('fill', x - 20, y - 18, 10, math.pi/2, 3*math.pi/2)
-    love.graphics.arc('fill', x - 16, y - 20, 8, math.pi/2, 3*math.pi/2)
-    love.graphics.arc('fill', x - 12, y - 22, 6, math.pi/2, 3*math.pi/2)
+    -- Mane (rainbow flowing right)
+    love.graphics.setColor(1, 0, 0) -- Red
+    love.graphics.arc('fill', x + 25, y - 20, 12, -math.pi/2, math.pi/2)
+    love.graphics.setColor(1, 0.5, 0) -- Orange
+    love.graphics.arc('fill', x + 24, y - 21, 11, -math.pi/2, math.pi/2)
+    love.graphics.setColor(1, 1, 0) -- Yellow
+    love.graphics.arc('fill', x + 23, y - 22, 10, -math.pi/2, math.pi/2)
+    love.graphics.setColor(0, 1, 0) -- Green
+    love.graphics.arc('fill', x + 22, y - 23, 9, -math.pi/2, math.pi/2)
+    love.graphics.setColor(0, 0, 1) -- Blue
+    love.graphics.arc('fill', x + 21, y - 24, 8, -math.pi/2, math.pi/2)
+    love.graphics.setColor(0.5, 0, 1) -- Indigo
+    love.graphics.arc('fill', x + 20, y - 25, 7, -math.pi/2, math.pi/2)
 
-    -- Tail (on the right)
-    love.graphics.arc('fill', x + 10, y + 5, 10, -math.pi/2, math.pi/2)
+    -- Tail (rainbow on the left)
+    love.graphics.setColor(1, 0, 0) -- Red
+    love.graphics.arc('fill', x - 5, y, 8, math.pi/2, 3*math.pi/2)
+    love.graphics.setColor(1, 0.5, 0) -- Orange
+    love.graphics.arc('fill', x - 4, y - 1, 7, math.pi/2, 3*math.pi/2)
+    love.graphics.setColor(1, 1, 0) -- Yellow
+    love.graphics.arc('fill', x - 3, y - 2, 6, math.pi/2, 3*math.pi/2)
 
     -- Legs (horse-like, positioned accordingly)
     love.graphics.setColor(1, 0.7, 0.8)
-    love.graphics.rectangle('fill', x - 15, y + 12, 4, 20)
-    love.graphics.rectangle('fill', x - 7, y + 12, 4, 20)
-    love.graphics.rectangle('fill', x + 1, y + 12, 4, 20)
-    love.graphics.rectangle('fill', x + 9, y + 12, 4, 20)
+    love.graphics.rectangle('fill', x + 18, y + 8, 3, 25)
+    love.graphics.rectangle('fill', x + 12, y + 8, 3, 25)
+    love.graphics.rectangle('fill', x + 6, y + 8, 3, 25)
+    love.graphics.rectangle('fill', x, y + 8, 3, 25)
     -- Hooves (black)
     love.graphics.setColor(0, 0, 0)
-    love.graphics.rectangle('fill', x - 16, y + 30, 6, 4)
-    love.graphics.rectangle('fill', x - 8, y + 30, 6, 4)
-    love.graphics.rectangle('fill', x, y + 30, 6, 4)
-    love.graphics.rectangle('fill', x + 8, y + 30, 6, 4)
+    love.graphics.rectangle('fill', x + 17, y + 32, 5, 3)
+    love.graphics.rectangle('fill', x + 11, y + 32, 5, 3)
+    love.graphics.rectangle('fill', x + 5, y + 32, 5, 3)
+    love.graphics.rectangle('fill', x - 1, y + 32, 5, 3)
 
-    -- Ears (pointed, on left)
+    -- Ears (pointed, on right)
     love.graphics.setColor(1, 0.7, 0.8)
-    love.graphics.polygon('fill', x - 20, y - 28, x - 17, y - 33, x - 14, y - 28)
+    love.graphics.polygon('fill', x + 26, y - 35, x + 23, y - 40, x + 20, y - 35)
+
+    -- Sparkles (magical effect)
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.circle('fill', x + 25, y - 40, 1)
+    love.graphics.circle('fill', x + 28, y - 38, 0.5)
+    love.graphics.circle('fill', x + 20, y - 42, 0.8)
+    love.graphics.circle('fill', x + 15, y - 10, 0.6)
+    love.graphics.circle('fill', x - 8, y + 5, 0.7)
 end
 
 return Unicorn
