@@ -1,6 +1,6 @@
 # From Unicorns with LÖVE
 
-A starter LÖVE Lua project with unit testing enabled using Busted. **WORK IN PROGRESS**.
+A LÖVE Lua game for children. **WORK IN PROGRESS**.
 
 ## Prerequisites
 
