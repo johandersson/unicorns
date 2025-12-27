@@ -43,8 +43,27 @@ end
 
 function Game:draw()
     -- Draw ground
-    love.graphics.setColor(0.5, 0.5, 0.5)
+    love.graphics.setColor(0.2, 0.8, 0.2)
     love.graphics.rectangle('fill', 0, self.ground, self.width, 50)
+
+    -- Draw flowers
+    love.graphics.setColor(0, 0.5, 0) -- green stems
+    for i = 1, 3 do
+        local x = self.width * (i / 4)
+        love.graphics.line(x, self.ground, x, self.ground - 20)
+    end
+    love.graphics.setColor(1, 0, 0) -- red petals
+    for i = 1, 3 do
+        local x = self.width * (i / 4)
+        love.graphics.circle('fill', x, self.ground - 20, 5)
+        love.graphics.circle('fill', x - 5, self.ground - 25, 5)
+        love.graphics.circle('fill', x + 5, self.ground - 25, 5)
+    end
+    love.graphics.setColor(1, 1, 0) -- yellow centers
+    for i = 1, 3 do
+        local x = self.width * (i / 4)
+        love.graphics.circle('fill', x, self.ground - 20, 2)
+    end
 
     -- Draw rainbow in background
     self.rainbow:draw()

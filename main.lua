@@ -12,11 +12,14 @@ function love.update(dt)
 end
 
 function love.draw()
+    love.graphics.setBackgroundColor(0.529, 0.808, 0.922)
     game:draw()
 end
 
 function love.keypressed(key)
-    if key == 'escape' then
+    if key == 'f11' then
+        love.window.setFullscreen(true)
+    elseif key == 'escape' then
         local result = love.window.showMessageBox("Exit", "Do you want to exit?", {"Yes", "No"}, "info", true)
         if result == 1 then
             love.event.quit()
@@ -24,4 +27,10 @@ function love.keypressed(key)
     else
         game:keypressed(key)
     end
+end
+
+function love.resize(w, h)
+    game.width = w
+    game.height = h
+    game.ground = h - 50
 end
