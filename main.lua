@@ -33,4 +33,5 @@ function love.resize(w, h)
     game.width = w
     game.height = h
     game.ground = h - 50
+    game.sun_x = w / 2
 end

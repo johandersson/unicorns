@@ -6,13 +6,15 @@ function Game:new()
         width = love.graphics.getWidth(),
         height = love.graphics.getHeight(),
         unicorn = nil,
-        rainbow = require('rainbow'):new(),
-        score = 0,
+        coins = 100,
         game_over = false,
         ground = 0,
-        stage = 1
+        stage = 1,
+        sun_x = 0,
+        sun_y = 50
     }
     obj.ground = obj.height - 50
+    obj.sun_x = obj.width / 2
     obj.unicorn = require('unicorn'):new(obj.width / 2, obj.height / 2, obj.ground, obj.width)
     setmetatable(obj, self)
     self.__index = self
@@ -27,21 +29,34 @@ function Game:update(dt)
         self.game_over = true
     end
 
-    -- Add rainbow segments while flying up
-    if love.keyboard.isDown('up') then
-        self.rainbow:addSegment(self.unicorn.x, self.unicorn.y, dt)
-    end
-
-    -- Check if rainbow complete
-    if self.rainbow:isComplete() then
-        self.score = self.score + 1
+    -- Check if reached the sun
+    if self.unicorn.y < self.sun_y + 30 and math.abs(self.unicorn.x - self.sun_x) < 30 then
+        self.coins = self.coins + 20
         self.stage = self.stage + 1
-        self.rainbow:reset()
-        -- Perhaps increase difficulty or something, but for now just score
+        self.unicorn = require('unicorn'):new(self.width / 2, self.height / 2, self.ground, self.width)
     end
 end
 
 function Game:draw()
+    -- Draw rainbow background
+    local rainbow_colors = {
+        {1, 0, 0},     -- red
+        {1, 0.5, 0},   -- orange
+        {1, 1, 0},     -- yellow
+        {0, 1, 0},     -- green
+        {0, 0, 1},     -- blue
+        {0.3, 0, 0.5}, -- indigo
+        {0.5, 0, 0.5}  -- violet
+    }
+    for i = 1, 7 do
+        love.graphics.setColor(unpack(rainbow_colors[i]))
+        love.graphics.rectangle('fill', 0, (i-1) * 20, self.width, 20)
+    end
+
+    -- Draw sun
+    love.graphics.setColor(1, 1, 0)
+    love.graphics.circle('fill', self.sun_x, self.sun_y, 30)
+
     -- Draw ground
     love.graphics.setColor(0.2, 0.8, 0.2)
     love.graphics.rectangle('fill', 0, self.ground, self.width, 50)
@@ -65,15 +80,12 @@ function Game:draw()
         love.graphics.circle('fill', x, self.ground - 20, 2)
     end
 
-    -- Draw rainbow in background
-    self.rainbow:draw()
-
     -- Draw unicorn
     self.unicorn:draw()
 
     -- Draw UI
     love.graphics.setColor(1, 1, 1)
-    love.graphics.print("Score: " .. self.score, 10, 10)
+    love.graphics.print("Coins: " .. self.coins, 10, 10)
     love.graphics.print("Stage: " .. self.stage, 10, 30)
 
     -- Draw game over
@@ -87,8 +99,7 @@ function Game:keypressed(key)
     if self.game_over and key == 'r' then
         -- Restart
         self.unicorn = require('unicorn'):new(self.width / 2, self.height / 2, self.ground, self.width)
-        self.rainbow = require('rainbow'):new()
-        self.score = 0
+        self.coins = 100
         self.game_over = false
         self.stage = 1
     end
