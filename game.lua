@@ -11,11 +11,14 @@ function Game:new()
         ground = 0,
         stage = 1,
         sun_x = 0,
-        sun_y = 50
+        sun_y = 50,
+        lives = 3,
+        trolls = {}
     }
     obj.ground = obj.height - 50
     obj.sun_x = obj.width / 2
     obj.unicorn = require('unicorn'):new(obj.width / 2, obj.height / 2, obj.ground, obj.width)
+    table.insert(obj.trolls, require('troll'):new(math.random(0, obj.width), -10, 150))
     setmetatable(obj, self)
     self.__index = self
     return obj
@@ -26,14 +29,35 @@ function Game:update(dt)
 
     local hit_ground = self.unicorn:update(dt)
     if hit_ground then
-        self.game_over = true
+        self.lives = self.lives - 1
+        if self.lives <= 0 then
+            self.game_over = true
+        else
+            self.unicorn = require('unicorn'):new(self.width / 2, self.height / 2, self.ground, self.width)
+        end
+    end
+
+    -- Update trolls
+    for i, troll in ipairs(self.trolls) do
+        troll:update(dt)
+        if math.abs(self.unicorn.x - troll.x) < 30 and math.abs(self.unicorn.y - troll.y) < 30 then
+            self.lives = self.lives - 1
+            table.remove(self.trolls, i)
+            if self.lives <= 0 then
+                self.game_over = true
+            else
+                self.unicorn = require('unicorn'):new(self.width / 2, self.height / 2, self.ground, self.width)
+            end
+            break
+        end
     end
 
     -- Check if reached the sun
-    if self.unicorn.y < self.sun_y + 30 and math.abs(self.unicorn.x - self.sun_x) < 30 then
+    if self.unicorn.y < self.sun_y + 40 and math.abs(self.unicorn.x - self.sun_x) < 40 then
         self.coins = self.coins + 20
         self.stage = self.stage + 1
         self.unicorn = require('unicorn'):new(self.width / 2, self.height / 2, self.ground, self.width)
+        table.insert(self.trolls, require('troll'):new(math.random(0, self.width), -10, 150))
     end
 end
 
@@ -83,10 +107,16 @@ function Game:draw()
     -- Draw unicorn
     self.unicorn:draw()
 
+    -- Draw trolls
+    for _, troll in ipairs(self.trolls) do
+        troll:draw()
+    end
+
     -- Draw UI
     love.graphics.setColor(1, 1, 1)
     love.graphics.print("Coins: " .. self.coins, 10, 10)
     love.graphics.print("Stage: " .. self.stage, 10, 30)
+    love.graphics.print("Lives: " .. self.lives, 10, 50)
 
     -- Draw game over
     if self.game_over then
@@ -102,6 +132,9 @@ function Game:keypressed(key)
         self.coins = 100
         self.game_over = false
         self.stage = 1
+        self.lives = 3
+        self.trolls = {}
+        table.insert(self.trolls, require('troll'):new(math.random(0, self.width), -10, 150))
     end
 end
 
