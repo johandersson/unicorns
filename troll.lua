@@ -36,8 +36,18 @@ function Troll:reset(x, y, speed)
     self.speed = speed
 end
 
-function Troll:update(dt)
+function Troll:update(dt, target)
+    -- vertical movement
     self.y = self.y + self.speed * dt
+    -- horizontal homing towards target if provided (makes trolls harder to escape)
+    if target and target.x then
+        local dx = target.x - self.x
+        -- horizontal homing speed (pixels per second)
+        local hspeed = 120
+        -- move proportionally but clamp to hspeed*dt
+        local move = math.max(-hspeed * dt, math.min(hspeed * dt, dx))
+        self.x = self.x + move
+    end
 end
 
 function Troll:draw()

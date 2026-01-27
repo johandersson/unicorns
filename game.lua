@@ -14,7 +14,11 @@ function Game:new()
         sun_y = 50,
         lives = 3,
         trolls = {},
-        troll_pool = {}
+        troll_pool = {},
+        paused = false,
+        death_timer = 0,
+        respawn_delay = 1.2,
+        flash_alpha = 0
     }
     obj.ground = obj.height - 50
     obj.sun_x = obj.width / 2
@@ -82,6 +86,7 @@ function Game:addTroll(x, y, speed)
     else
         troll = require('troll'):new(x, y, speed)
     end
+    troll.target = self.unicorn
     table.insert(self.trolls, {troll = troll, active = true})
 end
 
@@ -93,19 +98,39 @@ function Game:update(dt)
         self.lives = self.lives - 1
         if self.lives <= 0 then
             self.game_over = true
+            return
         else
-            self.unicorn = require('unicorn'):new(self.width / 2, self.height / 2, self.ground, self.width)
+            -- pause and show death message, then respawn after delay
+            self.paused = true
+            self.death_timer = 0
+            self.flash_alpha = 1
         end
     end
 
-    -- Update trolls (swap-remove to avoid O(N) shifts and avoid iterating dead entries)
+    -- If paused due to death, advance death timer and respawn when ready
+    if self.paused then
+        self.death_timer = self.death_timer + dt
+        self.flash_alpha = math.max(0, 1 - (self.death_timer / self.respawn_delay))
+        if self.death_timer >= self.respawn_delay then
+            self.paused = false
+            -- respawn unicorn
+            self.unicorn = require('unicorn'):new(self.width / 2, self.height / 2, self.ground, self.width)
+            -- update troll targets to the new unicorn
+            for _, entry in ipairs(self.trolls) do
+                entry.troll.target = self.unicorn
+                entry.active = true
+            end
+        end
+        return
+    end
+
+    -- Update trolls (swap-remove loop to avoid O(N) shifts)
     local i = 1
     while i <= #self.trolls do
         local entry = self.trolls[i]
         local t = entry.troll
-        -- update only active trolls
         if entry.active then
-            t:update(dt)
+            t:update(dt, self.unicorn)
             -- collision with unicorn
             if math.abs(self.unicorn.x - t.x) < 40 and math.abs(self.unicorn.y - t.y) < 40 then
                 -- recycle troll into pool
@@ -113,22 +138,23 @@ function Game:update(dt)
                 -- swap-remove current entry
                 self.trolls[i] = self.trolls[#self.trolls]
                 table.remove(self.trolls)
-                -- handle lives/unicorn reset
+                -- handle lives and start death pause
                 self.lives = self.lives - 1
                 if self.lives <= 0 then
                     self.game_over = true
                 else
-                    self.unicorn = require('unicorn'):new(self.width / 2, self.height / 2, self.ground, self.width)
+                    self.paused = true
+                    self.death_timer = 0
+                    self.flash_alpha = 1
                 end
                 break
             end
 
-            -- recycle trolls that fall off bottom to avoid growing list
+            -- recycle trolls that fall off bottom
             if t.y > self.height + 50 then
                 table.insert(self.troll_pool, t)
                 self.trolls[i] = self.trolls[#self.trolls]
                 table.remove(self.trolls)
-                -- do not increment i, process swapped-in element next
             else
                 i = i + 1
             end
@@ -172,6 +198,22 @@ function Game:draw()
     if self.game_over then
         love.graphics.setColor(1, 0, 0)
         love.graphics.printf("Game Over! Press R to restart", 0, self.height / 2, self.width, 'center')
+    end
+
+    -- Death flash / message when paused
+    if self.paused and not self.game_over then
+        -- semi-transparent overlay
+        love.graphics.setColor(0, 0, 0, 0.4 * self.flash_alpha)
+        love.graphics.rectangle('fill', 0, 0, self.width, self.height)
+
+        love.graphics.setColor(1, 1, 1)
+        local msg = "You died! Lives left: " .. self.lives
+        love.graphics.setFont(love.graphics.newFont(28))
+        love.graphics.printf(msg, 0, self.height / 2 - 20, self.width, 'center')
+
+        love.graphics.setFont(love.graphics.newFont(12))
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.printf("Respawning...", 0, self.height / 2 + 20, self.width, 'center')
     end
 end
 
