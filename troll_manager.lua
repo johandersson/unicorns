@@ -41,7 +41,9 @@ function TrollManager:update(dt)
                 table.insert(self.pool, t)
                 self.trolls[i] = self.trolls[#self.trolls]
                 table.remove(self.trolls)
-                self.game.lives = self.game.lives - 1
+                self.game.lives = (self.game.lives or 0) - 1
+                -- clamp and ensure integer
+                self.game.lives = math.max(0, math.floor(self.game.lives))
                 if self.game.lives <= 0 then
                     self.game.game_over = true
                 else

@@ -216,7 +216,8 @@ function Game:update(dt)
 
     local hit_ground = self.unicorn:update(dt)
     if hit_ground then
-        self.lives = self.lives - 1
+        self.lives = (self.lives or 0) - 1
+        self.lives = math.max(0, math.floor(self.lives))
         if self.lives <= 0 then
             self.game_over = true
             return
@@ -308,11 +309,14 @@ function Game:update(dt)
         self.coins = self.coins + 10
         self.sun_hits = self.sun_hits + 1
 
-        -- award extra lives if coins exceed threshold
-        while self.coins >= self.extra_life_cost do
-            self.coins = self.coins - self.extra_life_cost
-            self.lives = self.lives + 1
-            self.extra_life_msg = "+1 Life!"
+        -- award extra lives if coins exceed threshold (compute in one step)
+        if self.coins >= self.extra_life_cost then
+            local add = math.floor(self.coins / self.extra_life_cost)
+            -- guard against absurd numbers
+            add = math.min(add, 100)
+            self.coins = self.coins - add * self.extra_life_cost
+            self.lives = (self.lives or 0) + add
+            self.extra_life_msg = "+" .. tostring(add) .. " Life" .. (add > 1 and "s!" or "!")
             self.extra_life_msg_timer = self.extra_life_msg_duration
         end
 
