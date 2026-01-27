@@ -112,6 +112,24 @@ end
 function Game:update(dt)
     if self.game_over then return end
 
+    -- If a quiz is active, don't update gameplay. Only advance the quiz-result timer
+    if self.quiz_active then
+        if self.quiz_result_timer and self.quiz_result_timer > 0 then
+            self.quiz_result_timer = self.quiz_result_timer - dt
+            if self.quiz_result_timer <= 0 then
+                self.quiz_result_timer = 0
+                self.quiz_result_msg = nil
+                -- finish quiz and resume gameplay
+                self.quiz_active = false
+                self.paused = false
+                -- respawn unicorn and add a troll for next stage
+                self.unicorn = require('unicorn'):new(self.width / 2, self.height / 2, self.ground, self.width)
+                self:addTroll(math.random(0, self.width), -10, 200)
+            end
+        end
+        return
+    end
+
     local hit_ground = self.unicorn:update(dt)
     if hit_ground then
         self.lives = self.lives - 1
@@ -152,20 +170,7 @@ function Game:update(dt)
         end
     end
 
-    -- update quiz result timer (resume when finished)
-    if self.quiz_result_timer and self.quiz_result_timer > 0 then
-        self.quiz_result_timer = self.quiz_result_timer - dt
-        if self.quiz_result_timer <= 0 then
-            self.quiz_result_timer = 0
-            self.quiz_result_msg = nil
-            -- finish quiz and resume gameplay
-            self.quiz_active = false
-            self.paused = false
-            -- respawn unicorn and add a troll for next stage
-            self.unicorn = require('unicorn'):new(self.width / 2, self.height / 2, self.ground, self.width)
-            self:addTroll(math.random(0, self.width), -10, 200)
-        end
-    end
+    
 
     -- Update trolls (swap-remove loop to avoid O(N) shifts)
     local i = 1
