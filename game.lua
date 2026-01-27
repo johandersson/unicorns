@@ -477,11 +477,18 @@ function Game:draw()
         love.graphics.printf("Type the answer and press Enter. +100 coins for correct.", 0, self.height/2 + 30, self.width, 'center')
     end
 
-    -- Quiz result message
+    -- Quiz result message: draw at top-center below status texts with shadow
     if self.quiz_result_timer and self.quiz_result_timer > 0 then
         love.graphics.setFont(self.font_large)
+        local msg = self.quiz_result_msg or ""
+        local small_h = (self.font_small and self.font_small:getHeight()) or 14
+        local y = 10 + small_h + 6
+        -- shadow
+        love.graphics.setColor(0, 0, 0, 0.75)
+        love.graphics.printf(msg, 1, y + 1, self.width, 'center')
+        -- main text
         love.graphics.setColor(1, 1, 1)
-        love.graphics.printf(self.quiz_result_msg or "", 0, self.height/2 - 80, self.width, 'center')
+        love.graphics.printf(msg, 0, y, self.width, 'center')
     end
 end
 
