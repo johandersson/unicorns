@@ -24,9 +24,9 @@ function Game:new()
         extra_life_msg = nil,
         extra_life_msg_timer = 0,
         extra_life_msg_duration = 1.5,
-        -- Pre-created fonts to avoid per-frame allocations
-        font_large = love.graphics.newFont(28),
-        font_small = love.graphics.newFont(12)
+        -- Pre-created fonts to avoid per-frame allocations (smaller for status)
+        font_large = love.graphics.newFont(20),
+        font_small = love.graphics.newFont(10)
         ,
         -- Quiz / math problem fields
         quiz_active = false,
@@ -37,7 +37,13 @@ function Game:new()
         quiz_result_timer = 0,
         quiz_result_duration = 1.5,
         problems_file = 'math_problems.txt',
-        problems_count = 1000
+        problems_count = 1000,
+        -- progression and spawn tuning
+        sun_hits = 0,
+        sun_hits_required = 1,
+        troll_spawn_timer = 0,
+        troll_spawn_interval = 4.0,
+        troll_base_speed = 200
     }
     obj.ground = obj.height - 50
     obj.sun_x = obj.width / 2
@@ -213,10 +219,12 @@ function Game:update(dt)
         end
     end
 
-    -- Check if reached the sun
+    -- Check if reached the sun (sun hits required to level up)
     if self.unicorn.y < self.sun_y + 40 and math.abs(self.unicorn.x - self.sun_x) < 40 then
-        self.coins = self.coins + 20
-        self.stage = self.stage + 1
+        -- reward smaller coin per hit, require multiple hits for next stage
+        self.coins = self.coins + 10
+        self.sun_hits = self.sun_hits + 1
+
         -- award extra lives if coins exceed threshold
         while self.coins >= self.extra_life_cost do
             self.coins = self.coins - self.extra_life_cost
@@ -224,25 +232,66 @@ function Game:update(dt)
             self.extra_life_msg = "+1 Life!"
             self.extra_life_msg_timer = self.extra_life_msg_duration
         end
-        -- prepare quiz at end of stage: pause gameplay and show a random math problem
-        self.paused = true
-        self.quiz_active = true
-        self.quiz_input = ""
-        -- generate a simple problem suitable for 7-9 year olds
-        -- favor addition (70%) and simple subtraction otherwise
-        local op = (math.random() <= 0.7) and '+' or '-'
-        local a = math.random(1, 20)
-        local b = math.random(1, 20)
-        if op == '-' and b > a then
-            a, b = b, a
-        end
-        self.quiz_problem = string.format("%d %s %d", a, op, b)
-        if op == '+' then
-            self.quiz_answer = a + b
-        else
-            self.quiz_answer = a - b
+
+        -- If we've reached the required number of sun visits, level up
+        if self.sun_hits >= self.sun_hits_required then
+            self.sun_hits = 0
+            self.stage = self.stage + 1
+            -- increase difficulty: increase base speed and reduce spawn interval slightly
+            self.troll_base_speed = self.troll_base_speed + 20
+            self.troll_spawn_interval = math.max(1.0, self.troll_spawn_interval - 0.25)
+            -- increase next requirement progressively
+            self.sun_hits_required = math.ceil(1 + (self.stage - 1) * 0.5)
+
+            -- spawn a few trolls to mark the new stage
+            local spawn_count = math.min(1 + math.floor(self.stage / 2), 6)
+            for i = 1, spawn_count do
+                local sx = math.random(0, self.width)
+                local speed = self.troll_base_speed + math.random(-20, 40)
+                self:addTroll(sx, -10, speed)
+            end
+
+            -- prepare quiz at stage-up (not every sun visit): pause gameplay and show a math problem
+            self.paused = true
+            self.quiz_active = true
+            self.quiz_input = ""
+            -- generate a progressively harder problem
+            local max_operand = math.min(20 + (self.stage - 1) * 15, 200)
+            local op_roll = math.random()
+            local op
+            if op_roll < 0.6 then
+                op = '+'
+            elseif op_roll < 0.9 then
+                op = '-'
+            else
+                op = '*'
+            end
+            local a = math.random(1, max_operand)
+            local b = math.random(1, math.max(2, math.floor(max_operand / 3)))
+            if op == '-' and b > a then a, b = b, a end
+            self.quiz_problem = string.format("%d %s %d", a, op, b)
+            if op == '+' then
+                self.quiz_answer = a + b
+            elseif op == '-' then
+                self.quiz_answer = a - b
+            else
+                self.quiz_answer = a * b
+            end
         end
         -- do not spawn new troll/unicorn until quiz finished
+    end
+
+    -- periodic troll spawning to increase pressure
+    self.troll_spawn_timer = self.troll_spawn_timer + dt
+    if self.troll_spawn_timer >= self.troll_spawn_interval then
+        self.troll_spawn_timer = self.troll_spawn_timer - self.troll_spawn_interval
+        -- spawn 0..1 extra troll(s) scaled by stage
+        local count = (math.random() < math.min(0.25 + self.stage * 0.05, 0.8)) and 1 or 0
+        for i = 1, count do
+            local sx = math.random(0, self.width)
+            local speed = self.troll_base_speed + math.random(-30, 60)
+            self:addTroll(sx, -10, speed)
+        end
     end
 end
 
@@ -260,11 +309,12 @@ function Game:draw()
         end
     end
 
-    -- Draw UI
+    -- Draw UI (use smaller font for status to avoid large text)
     love.graphics.setColor(1, 1, 1)
+    love.graphics.setFont(self.font_small)
     love.graphics.print("Coins: " .. self.coins, 10, 10)
-    love.graphics.print("Stage: " .. self.stage, 10, 30)
-    love.graphics.print("Lives: " .. self.lives, 10, 50)
+    love.graphics.print("Stage: " .. self.stage .. " (need: " .. self.sun_hits_required .. ")", 10, 26)
+    love.graphics.print("Lives: " .. self.lives, 10, 42)
 
     -- Draw game over
     if self.game_over then
@@ -288,11 +338,12 @@ function Game:draw()
         love.graphics.printf("Respawning...", 0, self.height / 2 + 20, self.width, 'center')
     end
 
-    -- Extra life message
+    -- Extra life message (top-right so it doesn't clash with center messages)
     if self.extra_life_msg_timer and self.extra_life_msg_timer > 0 then
         love.graphics.setFont(self.font_large)
         love.graphics.setColor(1, 1, 0)
-        love.graphics.printf(self.extra_life_msg or "", 0, 80, self.width, 'center')
+        local msgw = 220
+        love.graphics.printf(self.extra_life_msg or "", self.width - msgw - 10, 10, msgw, 'right')
     end
 
     -- Quiz overlay
