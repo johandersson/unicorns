@@ -37,13 +37,25 @@ function Game:new()
         quiz_result_timer = 0,
         quiz_result_duration = 1.5,
         problems_file = 'math_problems.txt',
-        problems_count = 1000,
+        problems_count = 10000,
         -- progression and spawn tuning
         sun_hits = 0,
-        sun_hits_required = 1,
+        -- make it harder: require multiple sun visits before stage-up
+        sun_hits_required = 3,
         troll_spawn_timer = 0,
         troll_spawn_interval = 4.0,
-        troll_base_speed = 200
+        troll_base_speed = 200,
+        -- collectible coins that must be gathered to advance
+        field_coins = {},
+        coin_spawn_timer = 0,
+        coin_spawn_interval = 12.0,
+        coin_lifetime = 20.0,
+        coin_radius = 12,
+        coins_to_advance = 3,
+        progress_coins = 0,
+        -- pre-generated math problems (filled at startup)
+        problems = {},
+        next_problem_index = 1
     }
     obj.ground = obj.height - 50
     obj.sun_x = obj.width / 2
@@ -65,6 +77,49 @@ function Game:new()
     for i = 1, 7 do
         love.graphics.setColor(unpack(rainbow_colors[i]))
         love.graphics.arc('fill', obj.width / 2, obj.height, (8 - i) * 50, math.pi, 2 * math.pi)
+    end
+
+    -- Coin spawning and collection
+    self.coin_spawn_timer = self.coin_spawn_timer + dt
+    if self.coin_spawn_timer >= self.coin_spawn_interval then
+        self.coin_spawn_timer = self.coin_spawn_timer - self.coin_spawn_interval
+        -- spawn a coin at a reachable height near the ground
+        local cx = math.random(40, self.width - 40)
+        local cy = math.random(self.ground - 140, self.ground - 40)
+        table.insert(self.field_coins, {x = cx, y = cy, t = self.coin_lifetime})
+    end
+
+    -- update coins lifetimes and check for collection
+    local k = 1
+    while k <= #self.field_coins do
+        local fc = self.field_coins[k]
+        fc.t = fc.t - dt
+        local collected = false
+        if fc.t <= 0 then
+            collected = false
+        else
+            local dx = self.unicorn.x - fc.x
+            local dy = self.unicorn.y - fc.y
+            if math.sqrt(dx*dx + dy*dy) < (self.coin_radius + 24) then
+                collected = true
+            end
+        end
+        if collected then
+            -- collected: increment progress and bank coins
+            self.progress_coins = self.progress_coins + 1
+            self.coins = self.coins + 10
+            self.extra_life_msg = "+10 coins"
+            self.extra_life_msg_timer = 1.2
+            -- remove coin
+            self.field_coins[k] = self.field_coins[#self.field_coins]
+            table.remove(self.field_coins)
+        elseif fc.t <= 0 then
+            -- expired, remove
+            self.field_coins[k] = self.field_coins[#self.field_coins]
+            table.remove(self.field_coins)
+        else
+            k = k + 1
+        end
     end
 
     -- Draw sun
@@ -100,6 +155,29 @@ function Game:new()
     setmetatable(obj, self)
     self.__index = self
     obj:addTroll(math.random(0, obj.width), -10, 200)
+
+    -- Generate problems list (mixture of simple addition and some missing-operand equations)
+    math.randomseed(os.time())
+    for i = 1, obj.problems_count do
+        -- Keep difficulty appropriate for 7-9 year olds: operands mostly 1..100
+        local frac = i / math.max(1, obj.problems_count)
+        local maxv = 20 + math.floor(frac * 80) -- spreads up to ~100
+        maxv = math.max(10, math.min(maxv, 100))
+        local ptype_roll = math.random()
+        if ptype_roll < 0.03 then
+            -- missing-operand equation (hardest): A + X = C
+            local a = math.random(1, maxv)
+            local x = math.random(1, math.min(20, maxv))
+            local c = a + x
+            table.insert(obj.problems, {q = string.format("%d + X = %d", a, c), a = x, type = 'missing'})
+        else
+            -- normal addition
+            local a = math.random(1, maxv)
+            local b = math.random(1, math.min(maxv, 100))
+            table.insert(obj.problems, {q = string.format("%d + %d", a, b), a = a + b, type = 'normal'})
+        end
+    end
+
     return obj
 end
 
@@ -233,15 +311,17 @@ function Game:update(dt)
             self.extra_life_msg_timer = self.extra_life_msg_duration
         end
 
-        -- If we've reached the required number of sun visits, level up
-        if self.sun_hits >= self.sun_hits_required then
+        -- If we've reached the required number of sun visits AND collected enough field coins, level up
+        if self.sun_hits >= self.sun_hits_required and self.progress_coins >= self.coins_to_advance then
             self.sun_hits = 0
+            self.progress_coins = 0
             self.stage = self.stage + 1
             -- increase difficulty: increase base speed and reduce spawn interval slightly
             self.troll_base_speed = self.troll_base_speed + 20
             self.troll_spawn_interval = math.max(1.0, self.troll_spawn_interval - 0.25)
             -- increase next requirement progressively
-            self.sun_hits_required = math.ceil(1 + (self.stage - 1) * 0.5)
+            self.sun_hits_required = math.ceil(3 + (self.stage - 1) * 0.75)
+            self.coins_to_advance = 3 + math.floor(self.stage / 3)
 
             -- spawn a few trolls to mark the new stage
             local spawn_count = math.min(1 + math.floor(self.stage / 2), 6)
@@ -255,28 +335,34 @@ function Game:update(dt)
             self.paused = true
             self.quiz_active = true
             self.quiz_input = ""
-            -- generate a progressively harder problem
-            local max_operand = math.min(20 + (self.stage - 1) * 15, 200)
-            local op_roll = math.random()
-            local op
-            if op_roll < 0.6 then
-                op = '+'
-            elseif op_roll < 0.9 then
-                op = '-'
+            -- select a problem from the pre-generated list
+            local pick = self.next_problem_index
+            if pick > #self.problems then pick = math.random(1, #self.problems) end
+            local prob = self.problems[pick]
+            -- bias so 'missing' type appears more often at higher stages
+            if prob.type == 'missing' and math.random() < math.min(0.2 + self.stage * 0.05, 0.8) then
+                self.quiz_problem = prob.q
+                self.quiz_answer = prob.a
             else
-                op = '*'
+                -- if picked is normal or bias failed, find a normal one nearby
+                local found = prob
+                if found.type ~= 'normal' then
+                    for j = 1, 20 do
+                        local idx = ((pick + j - 1) % #self.problems) + 1
+                        if self.problems[idx].type == 'normal' then
+                            found = self.problems[idx]
+                            break
+                        end
+                    end
+                end
+                self.quiz_problem = found.q
+                self.quiz_answer = found.a
             end
-            local a = math.random(1, max_operand)
-            local b = math.random(1, math.max(2, math.floor(max_operand / 3)))
-            if op == '-' and b > a then a, b = b, a end
-            self.quiz_problem = string.format("%d %s %d", a, op, b)
-            if op == '+' then
-                self.quiz_answer = a + b
-            elseif op == '-' then
-                self.quiz_answer = a - b
-            else
-                self.quiz_answer = a * b
-            end
+            self.next_problem_index = self.next_problem_index + 1
+        elseif self.sun_hits >= self.sun_hits_required then
+            -- Not enough field coins yet; encourage player to collect more
+            self.extra_life_msg = "Collect " .. (self.coins_to_advance - self.progress_coins) .. " more coins to level up"
+            self.extra_life_msg_timer = 2.0
         end
         -- do not spawn new troll/unicorn until quiz finished
     end
@@ -309,12 +395,26 @@ function Game:draw()
         end
     end
 
+    -- Draw static collectible coins
+    for _, fc in ipairs(self.field_coins) do
+        -- gold outer
+        love.graphics.setColor(1, 0.85, 0)
+        love.graphics.circle('fill', fc.x, fc.y, self.coin_radius)
+        -- inner shine
+        love.graphics.setColor(1, 1, 0.6)
+        love.graphics.circle('fill', fc.x - 4, fc.y - 4, self.coin_radius * 0.5)
+        -- rim
+        love.graphics.setColor(0.8, 0.6, 0)
+        love.graphics.circle('line', fc.x, fc.y, self.coin_radius)
+    end
+
     -- Draw UI (use smaller font for status to avoid large text)
     love.graphics.setColor(1, 1, 1)
     love.graphics.setFont(self.font_small)
     love.graphics.print("Coins: " .. self.coins, 10, 10)
     love.graphics.print("Stage: " .. self.stage .. " (need: " .. self.sun_hits_required .. ")", 10, 26)
     love.graphics.print("Lives: " .. self.lives, 10, 42)
+    love.graphics.print("Progress: " .. self.progress_coins .. "/" .. self.coins_to_advance, 10, 58)
 
     -- Draw game over
     if self.game_over then
