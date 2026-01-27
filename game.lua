@@ -26,7 +26,8 @@ function Game:new()
         extra_life_msg_duration = 1.5,
         -- Pre-created fonts to avoid per-frame allocations (smaller for status)
         font_large = love.graphics.newFont(20),
-        font_small = love.graphics.newFont(10)
+        -- make status font larger for readability
+        font_small = love.graphics.newFont(14)
         ,
         -- Quiz / math problem fields
         quiz_active = false,
@@ -55,7 +56,7 @@ function Game:new()
         coin_radius = 18,
         coins_to_advance = 3,
         progress_coins = 0,
-        -- pre-generated math problems (filled at startup)
+        -- quiz/problem configuration
         problems = {},
         next_problem_index = 1
     }
@@ -117,32 +118,19 @@ function Game:new()
     self.__index = self
     obj:addTroll(math.random(0, obj.width), -10, 200)
 
-    -- Generate problems list (mixture of simple addition and some missing-operand equations)
-    math.randomseed(os.time())
-    for i = 1, obj.problems_count do
-        -- Keep difficulty appropriate for 7-9 year olds: operands mostly 1..100
-        local frac = i / math.max(1, obj.problems_count)
-        local maxv = 20 + math.floor(frac * 80) -- spreads up to ~100
-        maxv = math.max(10, math.min(maxv, 100))
-        local ptype_roll = math.random()
-        if ptype_roll < 0.03 then
-            -- missing-operand equation (hardest): A + X = C
-            local a = math.random(1, maxv)
-            local x = math.random(1, math.min(20, maxv))
-            local c = a + x
-            table.insert(obj.problems, {q = string.format("%d + X = %d", a, c), a = x, type = 'missing'})
-        else
-            -- normal addition
-            local a = math.random(1, maxv)
-            local b = math.random(1, math.min(maxv, 100))
-            table.insert(obj.problems, {q = string.format("%d + %d", a, b), a = a + b, type = 'normal'})
-        end
-    end
+    -- attach managers
+    obj.trollManager = require('troll_manager'):new(obj)
+    obj.quizManager = require('quiz_manager'):new(obj)
 
     return obj
 end
 
 function Game:addTroll(x, y, speed)
+    -- Prefer manager if available
+    if self.trollManager then
+        self.trollManager:add(x, y, speed)
+        return
+    end
     local troll
     if #self.troll_pool > 0 then
         troll = table.remove(self.troll_pool)
@@ -154,22 +142,20 @@ function Game:addTroll(x, y, speed)
     table.insert(self.trolls, {troll = troll, active = true})
 end
 
-function Game:updateTrolls(dt)
-    -- Update trolls
-    self:updateTrolls(dt)
-end
+-- troll update handled inline in Game:update (swap-remove loop)
 
 function Game:spawnFieldCoin()
     local cx = math.random(40, self.width - 40)
     -- place coins above the rainbow / in the upper play area so they're easier to catch
     local upper_max = math.max(60, math.floor(self.height * 0.35))
     local cy = math.random(30, upper_max)
+    local Coin = require('coin')
     local coin
     if #self.coin_pool > 0 then
         coin = table.remove(self.coin_pool)
-        coin.x = cx; coin.y = cy; coin.t = self.coin_lifetime
+        coin:reset(cx, cy, self.coin_lifetime, self.coin_radius)
     else
-        coin = {x = cx, y = cy, t = self.coin_lifetime}
+        coin = Coin:new(cx, cy, self.coin_lifetime, self.coin_radius)
     end
     table.insert(self.field_coins, coin)
 end
@@ -186,14 +172,10 @@ function Game:updateFieldCoins(dt)
     local k = 1
     while k <= #self.field_coins do
         local fc = self.field_coins[k]
-        fc.t = fc.t - dt
+        fc:update(dt)
         local collected = false
         if fc.t > 0 then
-            local dx = self.unicorn.x - fc.x
-            local dy = self.unicorn.y - fc.y
-            local ur = math.max(self.unicorn.width, self.unicorn.height) / 2
-            local combined = self.coin_radius + ur
-            if (dx*dx + dy*dy) <= (combined * combined) then
+            if fc:isCollectedBy(self.unicorn) then
                 collected = true
             end
         end
@@ -217,44 +199,13 @@ function Game:updateFieldCoins(dt)
     end
 end
 
-function Game:handleQuiz(dt)
-    -- If a quiz result is showing, show countdown for result then resume
-    if self.quiz_result_timer and self.quiz_result_timer > 0 then
-        self.quiz_result_timer = self.quiz_result_timer - dt
-        if self.quiz_result_timer <= 0 then
-            self.quiz_result_timer = 0
-            self.quiz_result_msg = nil
-            -- finish quiz and resume gameplay
-            self.quiz_active = false
-            self.paused = false
-            -- respawn unicorn and add a troll for next stage
-            self.unicorn = require('unicorn'):new(self.width / 2, self.height / 2, self.ground, self.width)
-            self:addTroll(math.random(0, self.width), -10, 200)
-        end
-        return true
-    end
-
-    -- question active: tick the quiz timer
-    if self.quiz_timer then
-        self.quiz_timer = self.quiz_timer - dt
-        if self.quiz_timer <= 0 then
-            -- timeout -> wrong
-            local msgs = {"Time! Try faster next time.", "Out of time!", "Too slow!"}
-            self.quiz_result_msg = msgs[math.random(#msgs)]
-            self.quiz_result_timer = self.quiz_result_duration
-            -- leave quiz_active true so result handler will clear later
-            return true
-        end
-    end
-    return false
-end
 
 function Game:update(dt)
     if self.game_over then return end
 
-    -- If a quiz is active, let the quiz handler manage timing and results
+    -- If a quiz is active, delegate timing and results to the quiz manager
     if self.quiz_active then
-        self:handleQuiz(dt)
+        if self.quizManager then self.quizManager:update(dt) end
         return
     end
 
@@ -300,44 +251,49 @@ function Game:update(dt)
 
     
 
-    -- Update trolls (swap-remove loop to avoid O(N) shifts)
-    local i = 1
-    while i <= #self.trolls do
-        local entry = self.trolls[i]
-        local t = entry.troll
-        if entry.active then
-            t:update(dt, self.unicorn)
-            -- collision with unicorn
-            if math.abs(self.unicorn.x - t.x) < 40 and math.abs(self.unicorn.y - t.y) < 40 then
-                -- recycle troll into pool
-                table.insert(self.troll_pool, t)
-                -- swap-remove current entry
-                self.trolls[i] = self.trolls[#self.trolls]
-                table.remove(self.trolls)
-                -- handle lives and start death pause
-                self.lives = self.lives - 1
-                if self.lives <= 0 then
-                    self.game_over = true
-                else
-                    self.paused = true
-                    self.death_timer = 0
-                    self.flash_alpha = 1
+    -- Update trolls via manager if present
+    if self.trollManager then
+        self.trollManager:update(dt)
+    else
+        -- fallback: update inline troll list
+        local i = 1
+        while i <= #self.trolls do
+            local entry = self.trolls[i]
+            local t = entry.troll
+            if entry.active then
+                t:update(dt, self.unicorn)
+                -- collision with unicorn
+                if math.abs(self.unicorn.x - t.x) < 40 and math.abs(self.unicorn.y - t.y) < 40 then
+                    -- recycle troll into pool
+                    table.insert(self.troll_pool, t)
+                    -- swap-remove current entry
+                    self.trolls[i] = self.trolls[#self.trolls]
+                    table.remove(self.trolls)
+                    -- handle lives and start death pause
+                    self.lives = self.lives - 1
+                    if self.lives <= 0 then
+                        self.game_over = true
+                    else
+                        self.paused = true
+                        self.death_timer = 0
+                        self.flash_alpha = 1
+                    end
+                    break
                 end
-                break
-            end
 
-            -- recycle trolls that fall off bottom
-            if t.y > self.height + 50 then
-                table.insert(self.troll_pool, t)
+                -- recycle trolls that fall off bottom
+                if t.y > self.height + 50 then
+                    table.insert(self.troll_pool, t)
+                    self.trolls[i] = self.trolls[#self.trolls]
+                    table.remove(self.trolls)
+                else
+                    i = i + 1
+                end
+            else
+                -- remove any inactive entries defensively
                 self.trolls[i] = self.trolls[#self.trolls]
                 table.remove(self.trolls)
-            else
-                i = i + 1
             end
-        else
-            -- remove any inactive entries defensively
-            self.trolls[i] = self.trolls[#self.trolls]
-            table.remove(self.trolls)
         end
     end
 
@@ -375,35 +331,16 @@ function Game:update(dt)
                 self:addTroll(sx, -10, speed)
             end
 
-            -- prepare quiz at stage-up (not every sun visit): pause gameplay and show a math problem
+            -- delegate quiz start to quiz manager
             self.paused = true
-            self.quiz_active = true
-            self.quiz_input = ""
-            self.quiz_timer = self.quiz_time_limit
-            -- select a problem from the pre-generated list
-            local pick = self.next_problem_index
-            if pick > #self.problems then pick = math.random(1, #self.problems) end
-            local prob = self.problems[pick]
-            -- bias so 'missing' type appears more often at higher stages
-            if prob.type == 'missing' and math.random() < math.min(0.2 + self.stage * 0.05, 0.8) then
-                self.quiz_problem = prob.q
-                self.quiz_answer = prob.a
+            if self.quizManager then
+                self.quizManager:start()
             else
-                -- if picked is normal or bias failed, find a normal one nearby
-                local found = prob
-                if found.type ~= 'normal' then
-                    for j = 1, 20 do
-                        local idx = ((pick + j - 1) % #self.problems) + 1
-                        if self.problems[idx].type == 'normal' then
-                            found = self.problems[idx]
-                            break
-                        end
-                    end
-                end
-                self.quiz_problem = found.q
-                self.quiz_answer = found.a
+                -- fallback: enable quiz state minimally
+                self.quiz_active = true
+                self.quiz_input = ""
+                self.quiz_timer = self.quiz_time_limit
             end
-            self.next_problem_index = self.next_problem_index + 1
         elseif self.sun_hits >= self.sun_hits_required then
             -- Not enough field coins yet; encourage player to collect more
             self.extra_life_msg = "Collect " .. (self.coins_to_advance - self.progress_coins) .. " more coins to level up"
@@ -436,33 +373,45 @@ function Game:draw()
     -- Draw unicorn
     self.unicorn:draw()
 
-    -- Draw trolls
-    for _, entry in ipairs(self.trolls) do
-        if entry.active then
-            entry.troll:draw()
+    -- Draw trolls via manager if present
+    if self.trollManager then
+        self.trollManager:draw()
+    else
+        for _, entry in ipairs(self.trolls) do
+            if entry.active then
+                entry.troll:draw()
+            end
         end
     end
 
     -- Draw static collectible coins
     for _, fc in ipairs(self.field_coins) do
-        -- gold outer
-        love.graphics.setColor(1, 0.85, 0)
-        love.graphics.circle('fill', fc.x, fc.y, self.coin_radius)
-        -- inner shine
-        love.graphics.setColor(1, 1, 0.6)
-        love.graphics.circle('fill', fc.x - 4, fc.y - 4, self.coin_radius * 0.5)
-        -- rim
-        love.graphics.setColor(0.8, 0.6, 0)
-        love.graphics.circle('line', fc.x, fc.y, self.coin_radius)
+        if type(fc.draw) == 'function' then
+            fc:draw()
+        else
+            -- fallback for plain tables
+            love.graphics.setColor(1, 0.85, 0)
+            love.graphics.circle('fill', fc.x, fc.y, self.coin_radius)
+            love.graphics.setColor(1, 1, 0.6)
+            love.graphics.circle('fill', fc.x - 4, fc.y - 4, self.coin_radius * 0.5)
+            love.graphics.setColor(0.8, 0.6, 0)
+            love.graphics.circle('line', fc.x, fc.y, self.coin_radius)
+        end
     end
 
     -- Draw UI (use smaller font for status to avoid large text)
-    love.graphics.setColor(1, 1, 1)
     love.graphics.setFont(self.font_small)
-    love.graphics.print("Coins: " .. self.coins, 10, 10)
-    love.graphics.print("Stage: " .. self.stage .. " (need: " .. self.sun_hits_required .. ")", 10, 26)
-    love.graphics.print("Lives: " .. self.lives, 10, 42)
-    love.graphics.print("Progress: " .. self.progress_coins .. "/" .. self.coins_to_advance, 10, 58)
+    -- small shadow for contrast: draw black offset then white text
+    local function shadowed_print(text, x, y)
+        love.graphics.setColor(0, 0, 0, 0.75)
+        love.graphics.print(text, x + 1, y + 1)
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.print(text, x, y)
+    end
+    shadowed_print("Coins: " .. self.coins, 10, 10)
+    shadowed_print("Stage: " .. self.stage .. " (need: " .. self.sun_hits_required .. ")", 10, 26)
+    shadowed_print("Lives: " .. self.lives, 10, 42)
+    shadowed_print("Progress: " .. self.progress_coins .. "/" .. self.coins_to_advance, 10, 58)
 
     -- Draw game over
     if self.game_over then
