@@ -191,7 +191,9 @@ function Game:updateFieldCoins(dt)
         if fc.t > 0 then
             local dx = self.unicorn.x - fc.x
             local dy = self.unicorn.y - fc.y
-            if (dx*dx + dy*dy) < ((self.coin_radius + 24) * (self.coin_radius + 24)) then
+            local ur = math.max(self.unicorn.width, self.unicorn.height) / 2
+            local combined = self.coin_radius + ur
+            if (dx*dx + dy*dy) <= (combined * combined) then
                 collected = true
             end
         end
