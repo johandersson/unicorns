@@ -56,6 +56,8 @@ function Game:new()
         coin_radius = 18,
         coins_to_advance = 3,
         progress_coins = 0,
+        -- manual pause toggle (pause everything until 'p' pressed again)
+        manual_pause = false,
         -- quiz/problem configuration
         problems = {},
         next_problem_index = 1
@@ -202,6 +204,9 @@ end
 
 function Game:update(dt)
     if self.game_over then return end
+
+    -- global manual pause: halt all gameplay updates until toggled off
+    if self.manual_pause then return end
 
     -- If a quiz is active, delegate timing and results to the quiz manager
     if self.quiz_active then
@@ -490,6 +495,15 @@ function Game:draw()
         love.graphics.setColor(1, 1, 1)
         love.graphics.printf(msg, 0, y, self.width, 'center')
     end
+
+    -- Manual pause overlay (draw on top if active)
+    if self.manual_pause then
+        love.graphics.setColor(0, 0, 0, 0.5)
+        love.graphics.rectangle('fill', 0, 0, self.width, self.height)
+        love.graphics.setFont(self.font_large)
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.printf("Paused - press P to resume", 0, self.height/2 - 20, self.width, 'center')
+    end
 end
 
 function Game:resize(w, h)
@@ -548,6 +562,11 @@ function Game:resize(w, h)
 end
 
 function Game:keypressed(key)
+    -- manual pause toggle
+    if key == 'p' then
+        self.manual_pause = not self.manual_pause
+        return
+    end
     -- If quiz is active, handle textbox input here
     if self.quiz_active then
         if key == 'backspace' then
