@@ -18,7 +18,15 @@ function Game:new()
         paused = false,
         death_timer = 0,
         respawn_delay = 1.2,
-        flash_alpha = 0
+        flash_alpha = 0,
+        -- Extra life settings
+        extra_life_cost = 200,
+        extra_life_msg = nil,
+        extra_life_msg_timer = 0,
+        extra_life_msg_duration = 1.5,
+        -- Pre-created fonts to avoid per-frame allocations
+        font_large = love.graphics.newFont(28),
+        font_small = love.graphics.newFont(12)
     }
     obj.ground = obj.height - 50
     obj.sun_x = obj.width / 2
@@ -124,6 +132,15 @@ function Game:update(dt)
         return
     end
 
+    -- update extra life message timer
+    if self.extra_life_msg_timer and self.extra_life_msg_timer > 0 then
+        self.extra_life_msg_timer = self.extra_life_msg_timer - dt
+        if self.extra_life_msg_timer <= 0 then
+            self.extra_life_msg = nil
+            self.extra_life_msg_timer = 0
+        end
+    end
+
     -- Update trolls (swap-remove loop to avoid O(N) shifts)
     local i = 1
     while i <= #self.trolls do
@@ -169,6 +186,13 @@ function Game:update(dt)
     if self.unicorn.y < self.sun_y + 40 and math.abs(self.unicorn.x - self.sun_x) < 40 then
         self.coins = self.coins + 20
         self.stage = self.stage + 1
+        -- award extra lives if coins exceed threshold
+        while self.coins >= self.extra_life_cost do
+            self.coins = self.coins - self.extra_life_cost
+            self.lives = self.lives + 1
+            self.extra_life_msg = "+1 Life!"
+            self.extra_life_msg_timer = self.extra_life_msg_duration
+        end
         self.unicorn = require('unicorn'):new(self.width / 2, self.height / 2, self.ground, self.width)
         self:addTroll(math.random(0, self.width), -10, 200)
     end
@@ -208,12 +232,19 @@ function Game:draw()
 
         love.graphics.setColor(1, 1, 1)
         local msg = "You died! Lives left: " .. self.lives
-        love.graphics.setFont(love.graphics.newFont(28))
+        love.graphics.setFont(self.font_large)
         love.graphics.printf(msg, 0, self.height / 2 - 20, self.width, 'center')
 
-        love.graphics.setFont(love.graphics.newFont(12))
+        love.graphics.setFont(self.font_small)
         love.graphics.setColor(1, 1, 1)
         love.graphics.printf("Respawning...", 0, self.height / 2 + 20, self.width, 'center')
+    end
+
+    -- Extra life message
+    if self.extra_life_msg_timer and self.extra_life_msg_timer > 0 then
+        love.graphics.setFont(self.font_large)
+        love.graphics.setColor(1, 1, 0)
+        love.graphics.printf(self.extra_life_msg or "", 0, 80, self.width, 'center')
     end
 end
 
