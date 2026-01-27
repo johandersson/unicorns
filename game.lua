@@ -36,6 +36,7 @@ function Game:new()
         quiz_result_msg = nil,
         quiz_result_timer = 0,
         quiz_result_duration = 1.5,
+        quiz_time_limit = 20,
         problems_file = 'math_problems.txt',
         problems_count = 10000,
         -- progression and spawn tuning
@@ -61,10 +62,8 @@ function Game:new()
     obj.ground = obj.height - 50
     obj.sun_x = obj.width / 2
 
-    -- Create background canvas
-            quiz_result_duration = 1.5,
-            quiz_time_limit = 20,
-    love.graphics.setCanvas(obj.background_canvas)
+        -- Create background canvas
+        love.graphics.setCanvas(obj.background_canvas)
 
     -- Draw rainbow background
     local rainbow_colors = {
