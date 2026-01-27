@@ -228,35 +228,19 @@ function Game:update(dt)
         self.paused = true
         self.quiz_active = true
         self.quiz_input = ""
-        -- pick a random problem (memory-efficient: iterate file until chosen line)
-        local idx = math.random(1, self.problems_count)
-        local line
-        local count = 0
-        for l in io.lines(self.problems_file) do
-            if l and l:match('%S') and not l:match('^%s*%-%-') then
-                count = count + 1
-                if count == idx then
-                    line = l
-                    break
-                end
-            end
+        -- generate a simple problem suitable for 7-9 year olds
+        -- favor addition (70%) and simple subtraction otherwise
+        local op = (math.random() <= 0.7) and '+' or '-'
+        local a = math.random(1, 20)
+        local b = math.random(1, 20)
+        if op == '-' and b > a then
+            a, b = b, a
         end
-        if line then
-            local expr, ans = line:match('^(.-)=%s*(%-?%d+)%s*$')
-            if expr then
-                -- trim
-                expr = expr:match('^%s*(.-)%s*$')
-                self.quiz_problem = expr
-                self.quiz_answer = tonumber(ans)
-            else
-                -- fallback: show whole line and expect numeric answer after '='
-                local a = line:match('=%s*(%-?%d+)')
-                self.quiz_problem = line
-                self.quiz_answer = tonumber(a)
-            end
+        self.quiz_problem = string.format("%d %s %d", a, op, b)
+        if op == '+' then
+            self.quiz_answer = a + b
         else
-            self.quiz_problem = "1 + 1"
-            self.quiz_answer = 2
+            self.quiz_answer = a - b
         end
         -- do not spawn new troll/unicorn until quiz finished
     end
