@@ -25,13 +25,28 @@ function Coin:update(dt)
 end
 
 function Coin:isCollectedBy(unicorn)
-    local dx = unicorn.x - self.x
-    local dy = unicorn.y - self.y
-    local ur = math.max(unicorn.width or 0, unicorn.height or 0) / 2
-    -- add a small tolerance so approach direction doesn't block collection
-    local tolerance = 4
-    local combined = (self.radius or 0) + ur + tolerance
-    return (dx*dx + dy*dy) <= (combined * combined)
+    -- Treat unicorn as an axis-aligned rectangle and coin as a circle.
+    -- This checks whether the circle intersects the rectangle, which
+    -- ensures collection when the unicorn "enters" the coin from any direction.
+    local ux = unicorn.x or 0
+    local uy = unicorn.y or 0
+    local uw = unicorn.width or 0
+    local uh = unicorn.height or 0
+    local left = ux - uw / 2
+    local right = ux + uw / 2
+    local top = uy - uh / 2
+    local bottom = uy + uh / 2
+
+    local cx = self.x or 0
+    local cy = self.y or 0
+    -- Find closest point on rectangle to circle center
+    local closestX = math.max(left, math.min(cx, right))
+    local closestY = math.max(top, math.min(cy, bottom))
+    local dx = cx - closestX
+    local dy = cy - closestY
+    local tol = 1 -- small epsilon to avoid strict off-by-one misses
+    local rr = (self.radius or 0) + tol
+    return (dx*dx + dy*dy) <= (rr * rr)
 end
 
 function Coin:draw()
