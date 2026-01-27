@@ -68,9 +68,9 @@ function Game:new()
     love.graphics.setCanvas() -- back to default
 
     obj.unicorn = require('unicorn'):new(obj.width / 2, obj.height / 2, obj.ground, obj.width)
-    obj:addTroll(math.random(0, obj.width), -10, 200)
     setmetatable(obj, self)
     self.__index = self
+    obj:addTroll(math.random(0, obj.width), -10, 200)
     return obj
 end
 
@@ -98,13 +98,22 @@ function Game:update(dt)
         end
     end
 
-    -- Update trolls
-    for i, entry in ipairs(self.trolls) do
+    -- Update trolls (swap-remove to avoid O(N) shifts and avoid iterating dead entries)
+    local i = 1
+    while i <= #self.trolls do
+        local entry = self.trolls[i]
+        local t = entry.troll
+        -- update only active trolls
         if entry.active then
-            entry.troll:update(dt)
-            if math.abs(self.unicorn.x - entry.troll.x) < 40 and math.abs(self.unicorn.y - entry.troll.y) < 40 then
-                entry.active = false
-                table.insert(self.troll_pool, entry.troll)
+            t:update(dt)
+            -- collision with unicorn
+            if math.abs(self.unicorn.x - t.x) < 40 and math.abs(self.unicorn.y - t.y) < 40 then
+                -- recycle troll into pool
+                table.insert(self.troll_pool, t)
+                -- swap-remove current entry
+                self.trolls[i] = self.trolls[#self.trolls]
+                table.remove(self.trolls)
+                -- handle lives/unicorn reset
                 self.lives = self.lives - 1
                 if self.lives <= 0 then
                     self.game_over = true
@@ -113,6 +122,20 @@ function Game:update(dt)
                 end
                 break
             end
+
+            -- recycle trolls that fall off bottom to avoid growing list
+            if t.y > self.height + 50 then
+                table.insert(self.troll_pool, t)
+                self.trolls[i] = self.trolls[#self.trolls]
+                table.remove(self.trolls)
+                -- do not increment i, process swapped-in element next
+            else
+                i = i + 1
+            end
+        else
+            -- remove any inactive entries defensively
+            self.trolls[i] = self.trolls[#self.trolls]
+            table.remove(self.trolls)
         end
     end
 
