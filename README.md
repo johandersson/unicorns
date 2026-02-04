@@ -9,10 +9,7 @@ Unicorn Flight is a charming, educational LÖVE game that teaches basic arithmet
   <img src="images/gameplay.png" width="400" alt="Gameplay">
 </p>
 <p align="center">
-  <img src="images/gameplay-coins.png" width="400" alt="Collecting Coins">
   <img src="images/quiz-dialog.png" width="400" alt="Math Quiz Dialog">
-</p>
-<p align="center">
   <img src="images/quiz-result.png" width="400" alt="Quiz Result">
 </p>
 
