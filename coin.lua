@@ -25,28 +25,30 @@ function Coin:update(dt)
 end
 
 function Coin:isCollectedBy(unicorn)
-    -- Treat unicorn as an axis-aligned rectangle and coin as a circle.
-    -- This checks whether the circle intersects the rectangle, which
-    -- ensures collection when the unicorn "enters" the coin from any direction.
+    -- Optimized circle-rectangle collision (cache calculations, early exit)
     local ux = unicorn.x or 0
     local uy = unicorn.y or 0
-    local uw = unicorn.width or 0
-    local uh = unicorn.height or 0
-    local left = ux - uw / 2
-    local right = ux + uw / 2
-    local top = uy - uh / 2
-    local bottom = uy + uh / 2
+    
+    -- Pre-calculate half dimensions (avoid repeated division)
+    local half_uw = (unicorn.width or 0) * 0.5
+    local half_uh = (unicorn.height or 0) * 0.5
+    local left = ux - half_uw
+    local right = ux + half_uw
+    local top = uy - half_uh
+    local bottom = uy + half_uh
 
     local cx = self.x or 0
     local cy = self.y or 0
+    
     -- Find closest point on rectangle to circle center
     local closestX = math.max(left, math.min(cx, right))
     local closestY = math.max(top, math.min(cy, bottom))
     local dx = cx - closestX
     local dy = cy - closestY
-    local tol = 1 -- small epsilon to avoid strict off-by-one misses
-    local rr = (self.radius or 0) + tol
-    return (dx*dx + dy*dy) <= (rr * rr)
+    
+    -- Squared distance comparison (avoid sqrt, pre-calculate squared radius)
+    local r_tol = self.radius + 1
+    return (dx*dx + dy*dy) <= (r_tol * r_tol)
 end
 
 function Coin:draw()

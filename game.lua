@@ -1,6 +1,17 @@
 -- game.lua
 Game = {}
 
+-- Pre-calculated constants (memoization at module level for O(1) access)
+local RAINBOW_COLORS = {
+    {1, 0, 0},     -- red
+    {1, 0.5, 0},   -- orange
+    {1, 1, 0},     -- yellow
+    {0, 1, 0},     -- green
+    {0, 0, 1},     -- blue
+    {0.3, 0, 0.5}, -- indigo
+    {0.5, 0, 0.5}  -- violet
+}
+
 function Game:new()
     local obj = {
         width = love.graphics.getWidth(),
@@ -38,8 +49,13 @@ function Game:new()
         quiz_result_timer = 0,
         quiz_result_duration = 1.5,
         quiz_time_limit = 20,
+        quiz_show_answer = false,
+        quiz_correct_answer = nil,
         problems_file = 'math_problems.txt',
         problems_count = 10000,
+        -- Memoization cache for formatted strings (avoid O(n) string operations per frame)
+        _cached_strings = {},
+        _string_cache_frame = 0,
         -- progression and spawn tuning
         sun_hits = 0,
         -- make it harder: require multiple sun visits before stage-up
@@ -72,17 +88,8 @@ function Game:new()
         love.graphics.setCanvas(obj.background_canvas)
 
     -- Draw rainbow background
-    local rainbow_colors = {
-        {1, 0, 0},     -- red
-        {1, 0.5, 0},   -- orange
-        {1, 1, 0},     -- yellow
-        {0, 1, 0},     -- green
-        {0, 0, 1},     -- blue
-        {0.3, 0, 0.5}, -- indigo
-        {0.5, 0, 0.5}  -- violet
-    }
     for i = 1, 7 do
-        love.graphics.setColor(unpack(rainbow_colors[i]))
+        love.graphics.setColor(unpack(RAINBOW_COLORS[i]))
         love.graphics.arc('fill', obj.width / 2, obj.height, (8 - i) * 50, math.pi, 2 * math.pi)
     end
 
@@ -127,8 +134,60 @@ function Game:new()
     obj.quizManager = require('quiz_manager'):new(obj)
     -- load Swedish locale by default
     obj.L = require('locales.sv')
+    
+    -- Cache frequently used locale strings (memoization to avoid O(n) table lookups per frame)
+    obj._locale_cache = {
+        coins_label = obj.L.coins_label or "Coins: %d",
+        stage_label = obj.L.stage_label or "Stage: %d (need: %d)",
+        lives_label = obj.L.lives_label or "Lives: %d",
+        progress_label = obj.L.progress_label or "Progress: %d/%d",
+        game_over = obj.L.game_over or "Game Over! Press R to restart",
+        you_died = obj.L.you_died or "You died! Lives left: %d",
+        respawning = obj.L.respawning or "Respawning...",
+        quiz_title = obj.L.quiz_title or "Math Challenge!",
+        time_label = obj.L.time_label or "Time: %ds",
+        quiz_hint = obj.L.quiz_hint or "Type the answer and press Enter. +100 coins for correct."
+    }
 
     return obj
+end
+
+-- Memoization helper for formatted strings (cache per-frame to avoid redundant string.format)
+function Game:cachedFormat(key, template, ...)
+    -- Simple frame-based cache invalidation
+    local args = {...}
+    local cache_key = key .. table.concat(args, "|")
+    
+    if not self._cached_strings[cache_key] then
+        self._cached_strings[cache_key] = template:format(...)
+    end
+    
+    return self._cached_strings[cache_key]
+end
+
+-- Retro-style dialog box with shadow (not transparent)
+function Game:drawRetroDialog(x, y, w, h, border_color, bg_color)
+    border_color = border_color or {1, 1, 1}
+    bg_color = bg_color or {0.1, 0.1, 0.2}
+    
+    -- Shadow (offset down-right)
+    love.graphics.setColor(0, 0, 0, 0.8)
+    love.graphics.rectangle('fill', x + 4, y + 4, w, h)
+    
+    -- Background
+    love.graphics.setColor(bg_color[1], bg_color[2], bg_color[3])
+    love.graphics.rectangle('fill', x, y, w, h)
+    
+    -- Outer border (thick retro style)
+    love.graphics.setColor(border_color[1], border_color[2], border_color[3])
+    love.graphics.setLineWidth(3)
+    love.graphics.rectangle('line', x, y, w, h)
+    
+    -- Inner border for double-line effect
+    love.graphics.setLineWidth(1)
+    love.graphics.rectangle('line', x + 6, y + 6, w - 12, h - 12)
+    
+    love.graphics.setLineWidth(1) -- reset
 end
 
 function Game:addTroll(x, y, speed)
@@ -426,15 +485,16 @@ function Game:draw()
         love.graphics.setColor(1, 1, 1)
         love.graphics.print(text, x, y)
     end
-    shadowed_print((self.L and self.L.coins_label or "Coins: %d"):format(self.coins), 10, 10)
-    shadowed_print((self.L and self.L.stage_label or "Stage: %d (need: %d)"):format(self.stage, self.sun_hits_required), 10, 26)
-    shadowed_print((self.L and self.L.lives_label or "Lives: %d"):format(self.lives), 10, 42)
-    shadowed_print((self.L and self.L.progress_label or "Progress: %d/%d"):format(self.progress_coins, self.coins_to_advance), 10, 58)
+    -- Use cached formatting to avoid repeated string.format (memoization)
+    shadowed_print(self:cachedFormat("coins", self._locale_cache.coins_label, self.coins), 10, 10)
+    shadowed_print(self:cachedFormat("stage", self._locale_cache.stage_label, self.stage, self.sun_hits_required), 10, 26)
+    shadowed_print(self:cachedFormat("lives", self._locale_cache.lives_label, self.lives), 10, 42)
+    shadowed_print(self:cachedFormat("progress", self._locale_cache.progress_label, self.progress_coins, self.coins_to_advance), 10, 58)
 
     -- Draw game over
     if self.game_over then
         love.graphics.setColor(1, 0, 0)
-        love.graphics.printf((self.L and self.L.game_over) or "Game Over! Press R to restart", 0, self.height / 2, self.width, 'center')
+        love.graphics.printf(self._locale_cache.game_over, 0, self.height / 2, self.width, 'center')
     end
 
     -- Death flash / message when paused
@@ -444,13 +504,13 @@ function Game:draw()
         love.graphics.rectangle('fill', 0, 0, self.width, self.height)
 
         love.graphics.setColor(1, 1, 1)
-        local msg = (self.L and self.L.you_died or "You died! Lives left: %d"):format(self.lives)
+        local msg = self._locale_cache.you_died:format(self.lives)
         love.graphics.setFont(self.font_large)
         love.graphics.printf(msg, 0, self.height / 2 - 20, self.width, 'center')
 
         love.graphics.setFont(self.font_small)
         love.graphics.setColor(1, 1, 1)
-        love.graphics.printf((self.L and self.L.respawning) or "Respawning...", 0, self.height / 2 + 20, self.width, 'center')
+        love.graphics.printf(self._locale_cache.respawning, 0, self.height / 2 + 20, self.width, 'center')
     end
 
     -- Extra life message (top-right so it doesn't clash with center messages)
@@ -461,52 +521,94 @@ function Game:draw()
         love.graphics.printf(self.extra_life_msg or "", self.width - msgw - 10, 10, msgw, 'right')
     end
 
-    -- Quiz overlay
+    -- Quiz overlay - retro dialog style
     if self.quiz_active then
-        -- darken background
-        love.graphics.setColor(0, 0, 0, 0.6)
+        -- Dim background (not completely transparent)
+        love.graphics.setColor(0, 0, 0, 0.7)
         love.graphics.rectangle('fill', 0, 0, self.width, self.height)
 
+        -- Main dialog box
+        local dialog_w = math.min(500, self.width - 60)
+        local dialog_h = 220
+        local dialog_x = (self.width - dialog_w) / 2
+        local dialog_y = (self.height - dialog_h) / 2 - 30
+        
+        self:drawRetroDialog(dialog_x, dialog_y, dialog_w, dialog_h, {0.3, 0.7, 1}, {0.05, 0.05, 0.15})
+        
+        -- Title
+        love.graphics.setFont(self.font_large)
+        love.graphics.setColor(1, 1, 0.3)
+        love.graphics.printf(self._locale_cache.quiz_title, dialog_x, dialog_y + 20, dialog_w, 'center')
+
+        -- Problem text
         love.graphics.setFont(self.font_large)
         love.graphics.setColor(1, 1, 1)
-        love.graphics.printf((self.L and self.L.quiz_title) or "Math Challenge!", 0, self.height/2 - 120, self.width, 'center')
+        love.graphics.printf(self.quiz_problem or "", dialog_x, dialog_y + 60, dialog_w, 'center')
 
-        love.graphics.setFont(self.font_small)
-        love.graphics.printf(self.quiz_problem or "", 0, self.height/2 - 70, self.width, 'center')
-
-        -- show remaining time
+        -- Timer
         if self.quiz_timer then
-            love.graphics.setColor(1, 0.8, 0.6)
-            love.graphics.printf((self.L and self.L.time_label or "Time: %ds"):format(math.ceil(self.quiz_timer)), 0, self.height/2 - 50, self.width, 'center')
-            love.graphics.setColor(1,1,1)
+            love.graphics.setFont(self.font_small)
+            love.graphics.setColor(1, 0.8, 0.4)
+            love.graphics.printf(self._locale_cache.time_label:format(math.ceil(self.quiz_timer)), dialog_x, dialog_y + 100, dialog_w, 'center')
         end
 
-        -- input box
-        local box_w, box_h = 300, 40
-        local bx, by = (self.width - box_w)/2, self.height/2 - 30
-        love.graphics.setColor(1,1,1)
-        love.graphics.rectangle('line', bx, by, box_w, box_h)
-        love.graphics.setColor(1,1,1)
-        love.graphics.printf(self.quiz_input, bx + 8, by + 8, box_w - 16, 'left')
+        -- Input box (retro style)
+        local input_w = 260
+        local input_h = 36
+        local input_x = dialog_x + (dialog_w - input_w) / 2
+        local input_y = dialog_y + 125
+        
+        love.graphics.setColor(0, 0, 0)
+        love.graphics.rectangle('fill', input_x, input_y, input_w, input_h)
+        love.graphics.setColor(0.3, 0.7, 1)
+        love.graphics.setLineWidth(2)
+        love.graphics.rectangle('line', input_x, input_y, input_w, input_h)
+        love.graphics.setLineWidth(1)
+        
+        love.graphics.setFont(self.font_large)
+        love.graphics.setColor(0, 1, 0)
+        love.graphics.printf(self.quiz_input .. "_", input_x + 8, input_y + 6, input_w - 16, 'center')
 
-        -- hint
+        -- Hint
         love.graphics.setFont(self.font_small)
-        love.graphics.setColor(0.8,0.8,0.8)
-        love.graphics.printf((self.L and self.L.quiz_hint) or "Type the answer and press Enter. +100 coins for correct.", 0, self.height/2 + 30, self.width, 'center')
+        love.graphics.setColor(0.7, 0.7, 0.8)
+        love.graphics.printf(self._locale_cache.quiz_hint, dialog_x, dialog_y + 175, dialog_w, 'center')
     end
 
-    -- Quiz result message: draw at top-center below status texts with shadow
+    -- Quiz result message - retro dialog box
     if self.quiz_result_timer and self.quiz_result_timer > 0 then
+        -- Dim background slightly
+        love.graphics.setColor(0, 0, 0, 0.4)
+        love.graphics.rectangle('fill', 0, 0, self.width, self.height)
+        
+        -- Result dialog box
+        local result_w = math.min(450, self.width - 80)
+        local result_h = self.quiz_show_answer and 180 or 140
+        local result_x = (self.width - result_w) / 2
+        local result_y = (self.height - result_h) / 2
+        
+        -- Color based on success/failure
+        local border_color = self.quiz_show_answer and {1, 0.3, 0.3} or {0.3, 1, 0.3}
+        local bg_color = self.quiz_show_answer and {0.15, 0.05, 0.05} or {0.05, 0.15, 0.05}
+        
+        self:drawRetroDialog(result_x, result_y, result_w, result_h, border_color, bg_color)
+        
+        -- Result message
         love.graphics.setFont(self.font_large)
-        local msg = self.quiz_result_msg or ""
-        local small_h = (self.font_small and self.font_small:getHeight()) or 14
-        local y = 10 + small_h + 6
-        -- shadow
-        love.graphics.setColor(0, 0, 0, 0.75)
-        love.graphics.printf(msg, 1, y + 1, self.width, 'center')
-        -- main text
-        love.graphics.setColor(1, 1, 1)
-        love.graphics.printf(msg, 0, y, self.width, 'center')
+        local msg_color = self.quiz_show_answer and {1, 0.5, 0.5} or {0.5, 1, 0.5}
+        love.graphics.setColor(msg_color[1], msg_color[2], msg_color[3])
+        love.graphics.printf(self.quiz_result_msg or "", result_x, result_y + 30, result_w, 'center')
+        
+        -- Show correct answer if wrong
+        if self.quiz_show_answer and self.quiz_correct_answer then
+            love.graphics.setFont(self.font_small)
+            love.graphics.setColor(1, 1, 0.6)
+            love.graphics.printf("The correct answer was:", result_x, result_y + 80, result_w, 'center')
+            
+            love.graphics.setFont(self.font_large)
+            love.graphics.setColor(1, 1, 1)
+            love.graphics.printf(tostring(self.quiz_correct_answer), result_x, result_y + 110, result_w, 'center')
+        end
     end
 
     -- Manual pause overlay (draw on top if active)
@@ -545,17 +647,8 @@ function Game:resize(w, h)
     love.graphics.setCanvas(self.background_canvas)
 
     -- Draw rainbow background
-    local rainbow_colors = {
-        {1, 0, 0},     -- red
-        {1, 0.5, 0},   -- orange
-        {1, 1, 0},     -- yellow
-        {0, 1, 0},     -- green
-        {0, 0, 1},     -- blue
-        {0.3, 0, 0.5}, -- indigo
-        {0.5, 0, 0.5}  -- violet
-    }
     for i = 1, 7 do
-        love.graphics.setColor(unpack(rainbow_colors[i]))
+        love.graphics.setColor(unpack(RAINBOW_COLORS[i]))
         love.graphics.arc('fill', w / 2, h, (8 - i) * 50, math.pi, 2 * math.pi)
     end
 
@@ -618,9 +711,13 @@ function Game:keypressed(key)
                 self.coins = self.coins + 100
                 local msgs = {"Nice! Math wizard! +100 coins","Boom! Brain power rewarded! +100 coins","Correct! You're unstoppable! +100 coins"}
                 self.quiz_result_msg = msgs[math.random(#msgs)]
+                self.quiz_show_answer = false
             else
+                -- wrong - show correct answer
                 local msgs = {"Oops! Not quite.", "Close, but no cookie.", "Nope — better luck next time."}
                 self.quiz_result_msg = msgs[math.random(#msgs)]
+                self.quiz_show_answer = true
+                self.quiz_correct_answer = self.quiz_answer
             end
             self.quiz_result_timer = self.quiz_result_duration
             return

@@ -2,6 +2,7 @@ Troll = {}
 
 local troll_canvas = nil
 local TROLL_SIZE = 40
+local TROLL_COLLISION_RADIUS_SQ = 1600  -- 40^2 pre-calculated for O(1) collision checks
 
 -- Pre-render troll graphic once
 if not troll_canvas then
@@ -42,11 +43,10 @@ function Troll:update(dt, target)
     -- horizontal homing towards target if provided (makes trolls harder to escape)
     if target and target.x then
         local dx = target.x - self.x
-        -- horizontal homing speed (pixels per second)
-        local hspeed = 120
-        -- move proportionally but clamp to hspeed*dt
-        local move = math.max(-hspeed * dt, math.min(hspeed * dt, dx))
-        self.x = self.x + move
+        -- Pre-calculate homing displacement (memoize constant multiplication)
+        local max_move = 120 * dt
+        -- Clamp movement (optimized single-pass clamping)
+        self.x = self.x + math.max(-max_move, math.min(max_move, dx))
     end
 end
 

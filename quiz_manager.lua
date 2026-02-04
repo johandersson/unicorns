@@ -17,19 +17,24 @@ end
 
 function Quiz:generateProblems(n)
     math.randomseed(os.time())
+    local n_max = math.max(1, n)
     for i = 1, n do
-        local frac = i / math.max(1, n)
-        local maxv = 20 + math.floor(frac * 80)
-        maxv = math.max(10, math.min(maxv, 100))
+        -- Pre-calculate fraction to avoid repeated division
+        local frac = i / n_max
+        local maxv = math.min(20 + math.floor(frac * 80), 100)
+        maxv = math.max(10, maxv)
+        
         local ptype_roll = math.random()
         if ptype_roll < 0.03 then
             local a = math.random(1, maxv)
-            local x = math.random(1, math.min(20, maxv))
+            local x_max = math.min(20, maxv)
+            local x = math.random(1, x_max)
             local c = a + x
             table.insert(self.problems, {q = string.format("%d + X = %d", a, c), a = x, type = 'missing'})
         else
             local a = math.random(1, maxv)
-            local b = math.random(1, math.min(maxv, 100))
+            local b_max = math.min(maxv, 100)
+            local b = math.random(1, b_max)
             table.insert(self.problems, {q = string.format("%d + %d", a, b), a = a + b, type = 'normal'})
         end
     end

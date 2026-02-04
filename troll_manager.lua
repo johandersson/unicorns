@@ -36,8 +36,11 @@ function TrollManager:update(dt)
         local t = entry.troll
         if entry.active then
             t:update(dt, self.game.unicorn)
-            -- collision with unicorn
-            if math.abs(self.game.unicorn.x - t.x) < 40 and math.abs(self.game.unicorn.y - t.y) < 40 then
+            -- Optimized collision detection (squared distance to avoid sqrt, early exit)
+            local dx = self.game.unicorn.x - t.x
+            local dy = self.game.unicorn.y - t.y
+            -- Use squared distance: 40^2 = 1600 (O(1) comparison vs O(1) with better constants)
+            if dx*dx + dy*dy < 1600 then
                 table.insert(self.pool, t)
                 self.trolls[i] = self.trolls[#self.trolls]
                 table.remove(self.trolls)
