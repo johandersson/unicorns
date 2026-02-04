@@ -36,11 +36,14 @@ function TrollManager:update(dt)
         local t = entry.troll
         if entry.active then
             t:update(dt, self.game.unicorn)
-            -- Optimized collision detection (squared distance to avoid sqrt, early exit)
+            -- Tighter collision detection - only register hits when truly touching
+            -- Troll visual radius is 20px, unicorn is ~20px, require actual overlap
             local dx = self.game.unicorn.x - t.x
             local dy = self.game.unicorn.y - t.y
-            -- Use squared distance: 40^2 = 1600 (O(1) comparison vs O(1) with better constants)
-            if dx*dx + dy*dy < 1600 then
+            -- Reduced collision radius: only ~28 pixels (troll 20 + unicorn 15 - 7 overlap tolerance)
+            -- This prevents "phantom hits" from far away
+            local collision_radius_sq = 28 * 28  -- 784 (was 1600 = 40^2)
+            if dx*dx + dy*dy < collision_radius_sq then
                 table.insert(self.pool, t)
                 self.trolls[i] = self.trolls[#self.trolls]
                 table.remove(self.trolls)

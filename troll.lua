@@ -2,7 +2,7 @@ Troll = {}
 
 local troll_canvas = nil
 local TROLL_SIZE = 40
-local TROLL_COLLISION_RADIUS_SQ = 1600  -- 40^2 pre-calculated for O(1) collision checks
+local TROLL_COLLISION_RADIUS_SQ = 784  -- 28^2 - tighter collision (was 1600)
 
 -- Pre-render troll graphic once
 if not troll_canvas then
