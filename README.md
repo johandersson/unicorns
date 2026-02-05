@@ -1,6 +1,6 @@
-# Unicorn Flight with [LÖVE](https://love2d.org/)
+# Rainbow Quest - Unicorn Flight with Math
 
-Unicorn Flight is a charming, educational LÖVE game that teaches basic arithmetic while delivering light, arcade-style action. Guide your unicorn skyward, collect coins, avoid trolls, and solve short math challenges to progress — perfect for unicorn lovers of ages 7–9. Features Swedish localization and retro-style dialog boxes.
+Rainbow Quest - Unicorn Flight with Math is a charming, educational [LÖVE](https://love2d.org/) game that teaches basic arithmetic while delivering light, arcade-style action. Guide your unicorn skyward, collect coins, avoid trolls, and solve short math challenges to progress — perfect for unicorn lovers of ages 7–9. Features Swedish localization and retro-style dialog boxes.
 
 ## Screenshots
 
