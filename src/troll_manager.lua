@@ -64,15 +64,22 @@ function TrollManager:update(dt)
                 table.insert(self.pool, t)
                 self.trolls[i] = self.trolls[#self.trolls]
                 table.remove(self.trolls)
-                self.game.lives = (self.game.lives or 0) - 1
-                -- clamp and ensure integer
-                self.game.lives = math.max(0, math.floor(self.game.lives))
-                if self.game.lives <= 0 then
-                    self.game.game_over = true
+                
+                -- Play death sound
+                if self.game.soundManager then
+                    self.game.soundManager:play('death')
+                end
+                
+                -- Update lives through stateManager
+                self.game.stateManager.lives = self.game.stateManager.lives - 1
+                self.game.stateManager.lives = math.max(0, math.floor(self.game.stateManager.lives))
+                
+                if self.game.stateManager.lives <= 0 then
+                    self.game.stateManager.game_over = true
                 else
-                    self.game.paused = true
-                    self.game.death_timer = 0
-                    self.game.flash_alpha = 1
+                    self.game.stateManager.paused = true
+                    self.game.stateManager.death_timer = 0
+                    self.game.stateManager.flash_alpha = 1
                 end
                 break
             end

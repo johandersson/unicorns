@@ -66,7 +66,7 @@ function Quiz:start()
     self.game.quiz_answer = prob.a
     self.game.quiz_input = ""
     self.game.quiz_active = true
-    self.game.paused = true
+    self.game.stateManager.paused = true
     self.game.quiz_timer = self.time_limit
     self.next_index = pick + 1
 end
@@ -79,7 +79,7 @@ function Quiz:update(dt)
             self.game.quiz_result_timer = 0
             self.game.quiz_result_msg = nil
             self.game.quiz_active = false
-            self.game.paused = false
+            self.game.stateManager.paused = false
             self.game.unicorn = require('src.unicorn'):new(self.game.width / 2, self.game.height / 2, self.game.ground, self.game.width)
             -- after result, spawn a troll to resume challenge
             if self.game.trollManager then
