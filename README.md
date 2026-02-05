@@ -29,10 +29,11 @@ Unicorn Flight is a charming, educational LÖVE game that teaches basic arithmet
 **Math Challenges**: Each stage advance triggers a retro-style math quiz dialog (20s time limit). Answer correctly to earn +100 coins! Wrong answers display the correct solution in a retro dialog box. Problems scale with difficulty and include both standard additions and "missing value" equations (e.g., `3 + X = 10`).
 
 **Sound Effects**: Enjoy procedurally-generated sound effects for:
-- Coin collection (bright ascending tone)
-- Sun reaches (gentle ping)
-- Level ups (triumphant fanfare)
-- Deaths (descending tone)
+- Coin collection (bright ascending tone 800→1200 Hz)
+- Sun reaches (gentle ping 1000→1200 Hz)
+- Level ups (triumphant fanfare 400→800 Hz)
+- Deaths (descending tone 600→200 Hz)
+- All sounds generated using LÖVE's SoundData API (no external files needed)
 
 **Scoring System**:
 - +3 points for each sun touch
@@ -62,7 +63,7 @@ Player names and high scores are automatically saved to `scoreboard/highscores.t
 - **Player selection**: Choose from previous players or create a new profile
 - **Per-player tracking**: Each player maintains their own high score
 - **Automatic saving**: Scores are saved immediately upon game over
-- **Celebration screen**: New high scores trigger a glowing gold retro dialog with encouraging messages in both Swedish and English
+- **Celebration screen**: New high scores display a static gold retro dialog with congratulatory message in your selected language
 - **Ranking display**: See your rank among all players
 
 ## Prerequisites
@@ -133,7 +134,10 @@ assets/                  # Game assets
 
 - **Arrow keys**: Navigate (UP to fly, LEFT/RIGHT to move)
 - **P**: Pause/unpause game
+- **F1**: Show help dialog (scrollable instructions and tips)
+- **F2**: Open settings (change language: Swedish/English)
 - **F11**: Toggle fullscreen
+- **F12**: Take screenshot (saved to screenshots/ folder)
 - **ESC**: Exit game (with confirmation)
 - **R**: Restart after game over
 - **Numeric keys + Enter**: Answer math challenges
@@ -148,11 +152,26 @@ assets/                  # Game assets
 
 ## Localization
 
-The game supports multiple languages:
+The game supports multiple languages with runtime switching:
 - **Swedish** (default): `locales/sv.lua`
 - **English**: `locales/en.lua`
 
-All UI text, quiz messages, and feedback are fully localized.
+**Features:**
+- All UI text, quiz messages, and feedback are fully localized
+- Language can be changed in-game via F2 settings dialog
+- Settings persist between sessions in `settings.txt`
+- Both languages have complete parity (all same translation keys)
+
+## License
+
+**Rainbow Quest - Unicorn Flight**  
+Copyright (C) 2026 Johan Andersson
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 ## Assets
 
