@@ -44,7 +44,15 @@ function HelpManager:hide()
 end
 
 function HelpManager:calculateContentHeight()
-    local locale = self.game.locale
+    local locale = self.game.locale or self.game.L
+    if not locale or not locale.help_content then
+        -- Fallback if locale not yet loaded
+        self.contentHeight = 500
+        local viewportHeight = love.graphics.getHeight() * 0.7
+        self.maxScroll = math.max(0, self.contentHeight - viewportHeight)
+        return
+    end
+    
     local content = locale.help_content
     self.contentHeight = #content * self.lineHeight + 100 -- Extra padding for title and footer
     local viewportHeight = love.graphics.getHeight() * 0.7
@@ -92,7 +100,14 @@ function HelpManager:draw()
     if not self.isVisible then return end
     
     local w, h = love.graphics.getWidth(), love.graphics.getHeight()
-    local locale = self.game.locale
+    local locale = self.game.locale or self.game.L
+    
+    -- Fallback if locale not loaded
+    if not locale or not locale.help_content then
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.printf("Loading...", 0, h/2, w, "center")
+        return
+    end
     
     -- Dim background
     love.graphics.setColor(0, 0, 0, 0.8)

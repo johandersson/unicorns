@@ -67,6 +67,12 @@ function SettingsManager:setLanguage(lang)
     
     self.game.currentLanguage = lang
     self.game.locale = require("locales." .. lang)
+    
+    -- Update references in other managers
+    if self.game.uiManager then
+        self.game.uiManager.locale = self.game.locale
+    end
+    self.game.L = self.game.locale
 end
 
 function SettingsManager:toggle()
@@ -114,7 +120,14 @@ function SettingsManager:draw()
     if not self.isVisible then return end
     
     local w, h = love.graphics.getWidth(), love.graphics.getHeight()
-    local locale = self.game.locale
+    local locale = self.game.locale or self.game.L
+    
+    -- Fallback if locale not loaded
+    if not locale then
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.printf("Loading...", 0, h/2, w, "center")
+        return
+    end
     
     -- Dim background
     love.graphics.setColor(0, 0, 0, 0.8)
