@@ -106,7 +106,6 @@ src/                     # Source code directory
   ├── quiz_manager.lua  # Math problem generation and quiz logic
   ├── coin.lua          # Collectible coin entity
   ├── coin_manager.lua  # Coin spawning and pooling
-  ├── field_coins.lua   # Field coin collection system
   ├── rainbow.lua       # Rainbow visual effect
   ├── ui_manager.lua    # All UI rendering with text caching
   ├── background_renderer.lua  # Static background with canvas

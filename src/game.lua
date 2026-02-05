@@ -28,8 +28,6 @@ function Game:new()
         ground = 0,
         sun_x = 0,
         sun_y = 50,
-        trolls = {},
-        troll_pool = {},
         troll_spawn_timer = 0,
         -- Quiz / math problem fields
         quiz_active = false,
@@ -140,10 +138,12 @@ function Game:update(dt)
         if should_respawn then
             -- Respawn unicorn
             self.unicorn = require('src.unicorn'):new(self.width / 2, self.height / 2, self.ground, self.width)
-            -- Update troll targets to the new unicorn
-            for _, entry in ipairs(self.trolls) do
-                entry.troll.target = self.unicorn
-                entry.active = true
+            -- Update troll targets to the new unicorn via manager
+            if self.trollManager and self.trollManager.trolls then
+                for _, entry in ipairs(self.trollManager.trolls) do
+                    entry.troll.target = self.unicorn
+                    entry.active = true
+                end
             end
         end
         return
@@ -487,8 +487,12 @@ function Game:keypressed(key)
         self.coinManager:resetProgress()
         self.scoreboardManager:resetSessionScore()
         self.show_highscore_celebration = false
-        self.trolls = {}
-        self.troll_pool = {}
+        
+        -- Reset trollManager
+        if self.trollManager then
+            self.trollManager.trolls = {}
+            self.trollManager.pool = {}
+        end
         self:addTroll(math.random(0, self.width), -10, 200)
     end
 end
