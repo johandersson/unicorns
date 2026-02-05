@@ -61,7 +61,11 @@ function UIManager:updateLocaleCache()
         select_player_prompt = self.L.select_player_prompt or "Select player or enter new name:",
         enter_name_hint = self.L.enter_name_hint or "Press Enter to continue",
         score_label = self.L.score_label or "Score: %d",
-        highscore_label = self.L.highscore_label or "High Score: %d"
+        highscore_label = self.L.highscore_label or "High Score: %d",
+        player_select_hint = self.L.player_select_hint or "↑↓ to select, Enter to choose",
+        or_type_new_name = self.L.or_type_new_name or "Or type new name below:",
+        highscore_celebration = self.L.highscore_celebration or "CONGRATULATIONS! New personal best!",
+        play_again = self.L.play_again or "Press R to play again"
     }
 end
 
@@ -132,7 +136,7 @@ function UIManager:drawPauseOverlay()
     love.graphics.rectangle('fill', 0, 0, self.width, self.height)
     love.graphics.setFont(self.font_large)
     love.graphics.setColor(1, 1, 1)
-    love.graphics.printf("Paused - press P to resume", 0, self.height/2 - 20, self.width, 'center')
+    love.graphics.printf(self._locale_cache.paused_msg or self.L.paused_msg, 0, self.height/2 - 20, self.width, 'center')
 end
 
 function UIManager:drawWelcomeScreen()
@@ -140,13 +144,13 @@ function UIManager:drawWelcomeScreen()
     love.graphics.rectangle('fill', 0, 0, self.width, self.height)
     love.graphics.setFont(self.font_large)
     love.graphics.setColor(1, 1, 1)
-    love.graphics.printf("Welcome to Rainbow Quest!", 0, self.height/2 - 80, self.width, 'center')
+    love.graphics.printf(self._locale_cache.enter_name_title or self.L.welcome_title, 0, self.height/2 - 80, self.width, 'center')
     love.graphics.setFont(self.font_small)
     love.graphics.setColor(0.9, 0.9, 0.9)
-    love.graphics.printf("Collect coins, reach the sun, and solve math challenges.", 0, self.height/2 - 40, self.width, 'center')
-    love.graphics.printf("Controls: Arrow keys to move, Up to fly, P to pause.", 0, self.height/2 - 10, self.width, 'center')
+    love.graphics.printf(self.L.welcome_desc, 0, self.height/2 - 40, self.width, 'center')
+    love.graphics.printf(self.L.controls, 0, self.height/2 - 10, self.width, 'center')
     love.graphics.setColor(1, 1, 0)
-    love.graphics.printf("Press Enter or Space to Start", 0, self.height/2 + 30, self.width, 'center')
+    love.graphics.printf(self.L.press_start, 0, self.height/2 + 30, self.width, 'center')
 end
 
 function UIManager:drawNameInputScreen(name_input, player_names, selected_index, dialog_renderer)
@@ -195,11 +199,11 @@ function UIManager:drawNameInputScreen(name_input, player_names, selected_index,
         y_offset = y_offset + math.min(max_show, #player_names) * 24 + 20
         
         love.graphics.setColor(0.7, 0.7, 0.8)
-        love.graphics.printf("↑↓ to select, Enter to choose", dialog_x, dialog_y + y_offset, dialog_w, 'center')
+        love.graphics.printf(self._locale_cache.player_select_hint, dialog_x, dialog_y + y_offset, dialog_w, 'center')
         y_offset = y_offset + 25
         
         love.graphics.setColor(1, 1, 0)
-        love.graphics.printf("Or type new name below:", dialog_x, dialog_y + y_offset, dialog_w, 'center')
+        love.graphics.printf(self._locale_cache.or_type_new_name, dialog_x, dialog_y + y_offset, dialog_w, 'center')
         y_offset = y_offset + 25
     end
     
@@ -227,11 +231,8 @@ function UIManager:drawNameInputScreen(name_input, player_names, selected_index,
 end
 
 function UIManager:drawHighScoreCelebration(score_data, dialog_renderer)
-    -- Animated gold glow effect (inner function for glow calculation)
-    local function getGlowColor(time)
-        local pulse = 0.5 + 0.5 * math.sin(time * 3)
-        return {1, 0.84 + pulse * 0.16, pulse * 0.3}
-    end
+    -- Static gold color (no animation)
+    local gold_color = {1, 0.84, 0}
     
     -- Dim background
     love.graphics.setColor(0, 0, 0, 0.6)
@@ -242,19 +243,18 @@ function UIManager:drawHighScoreCelebration(score_data, dialog_renderer)
     local dialog_x = (self.width - dialog_w) / 2
     local dialog_y = (self.height - dialog_h) / 2
     
-    -- Glowing golden dialog
-    local glow_color = getGlowColor(love.timer.getTime())
-    dialog_renderer:drawRetroDialog(dialog_x, dialog_y, dialog_w, dialog_h, glow_color, {0.1, 0.05, 0})
+    -- Static golden dialog
+    dialog_renderer:drawRetroDialog(dialog_x, dialog_y, dialog_w, dialog_h, gold_color, {0.1, 0.05, 0})
     
-    -- Title with glow
+    -- Title in gold
     love.graphics.setFont(self.font_large)
-    love.graphics.setColor(glow_color[1], glow_color[2], glow_color[3])
+    love.graphics.setColor(1, 0.84, 0)
     love.graphics.printf(score_data.title, dialog_x, dialog_y + 25, dialog_w, 'center')
     
-    -- Congratulation message
+    -- Single static congratulation message
     love.graphics.setFont(self.font_large)
     love.graphics.setColor(1, 1, 0.6)
-    love.graphics.printf(score_data.message, dialog_x + 20, dialog_y + 70, dialog_w - 40, 'center')
+    love.graphics.printf(self._locale_cache.highscore_celebration, dialog_x + 20, dialog_y + 70, dialog_w - 40, 'center')
     
     -- Score details
     love.graphics.setFont(self.font_small)
@@ -270,7 +270,7 @@ function UIManager:drawHighScoreCelebration(score_data, dialog_renderer)
     -- Continue hint
     love.graphics.setFont(self.font_small)
     love.graphics.setColor(0.7, 0.7, 0.8)
-    love.graphics.printf("Press R to play again", dialog_x, dialog_y + 220, dialog_w, 'center')
+    love.graphics.printf(self._locale_cache.play_again, dialog_x, dialog_y + 220, dialog_w, 'center')
 end
 
 function UIManager:resize(w, h)

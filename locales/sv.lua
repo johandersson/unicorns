@@ -94,5 +94,11 @@ return {
     settings_language_sv = "Svenska",
     settings_language_en = "English",
     settings_close = "Tryck ESC eller F2 för att stänga",
-    settings_saved = "Inställningar sparade!"
+    settings_saved = "Inställningar sparade!",
+    
+    -- UI Messages
+    player_select_hint = "↑↓ för att välja, Enter för att bekräfta",
+    or_type_new_name = "Eller skriv nytt namn nedan:",
+    highscore_celebration = "GRATTIS! Nytt personbästa!",
+    play_again = "Tryck R för att spela igen"
 }
