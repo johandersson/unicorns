@@ -65,3 +65,9 @@ function love.wheelmoved(x, y)
         game:wheelmoved(x, y)
     end
 end
+
+function love.mousepressed(x, y, button)
+    if game and game.mousepressed then
+        game:mousepressed(x, y, button)
+    end
+end

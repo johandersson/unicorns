@@ -1,7 +1,7 @@
 return {
     welcome_title = "Rainbow Quest - Enhörningsflygning med Matte",
     welcome_desc = "Samla mynt, nå solen och lös mattetal.",
-    controls = "Kontroller: Piltangenter för rörelse, Upp för att flyga, P för paus.",
+    controls = "Kontroller: Piltangenter för rörelse, Upp för att flyga, P paus, S topplista.",
     press_start = "Tryck Enter eller Mellanslag för att starta",
 
     paused_msg = "Pausad - tryck P för att återuppta",
@@ -61,6 +61,7 @@ return {
         "↑ Piltangent - Flyg uppåt",
         "← → Piltangenter - Flyg åt sidorna",
         "P - Pausa spelet",
+        "S - Visa topplista",
         "F1 - Visa denna hjälp",
         "F2 - Inställningar",
         "",
@@ -97,6 +98,21 @@ return {
     settings_language_en = "English",
     settings_close = "Tryck ESC eller F2 för att stänga",
     settings_saved = "Inställningar sparade!",
+    
+    -- Scoreboard Pause (S key)
+    scoreboard_pause_title = "⭐ Topplista ⭐",
+    scoreboard_continue = "Klicka eller tryck S för att fortsätta",
+    scoreboard_encouragement = {
+        "Bra jobbat!",
+        "Fantastiskt!",
+        "Du är grym!",
+        "Fortsätt så!",
+        "Riktigt bra!"
+    },
+    scoreboard_rank_excellent = "Du är nummer %d! Grymt bra!",
+    scoreboard_rank_great = "Nummer %d! Bra jobbat, fortsätt!",
+    scoreboard_rank_good = "Du ligger på plats %d. Fortsätt kämpa!",
+    scoreboard_rank_keep_going = "Du är på plats %d. Du kan komma högre!",
     
     -- UI Messages
     player_select_hint = "↑↓ för att välja, Enter för att bekräfta",

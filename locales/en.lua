@@ -1,7 +1,7 @@
 return {
     welcome_title = "Rainbow Quest - Unicorn Flight with Math",
     welcome_desc = "Collect coins, reach the sun, and solve math challenges.",
-    controls = "Controls: Arrow keys to move, Up to fly, P to pause.",
+    controls = "Controls: Arrow keys to move, Up to fly, P pause, S scoreboard.",
     press_start = "Press Enter or Space to Start",
 
     paused_msg = "Paused - press P to resume",
@@ -60,6 +60,7 @@ return {
         "↑ Arrow Key - Fly upward",
         "← → Arrow Keys - Fly sideways",
         "P - Pause game",
+        "S - Show scoreboard",
         "F1 - Show this help",
         "F2 - Settings",
         "",
@@ -96,6 +97,21 @@ return {
     settings_language_en = "English",
     settings_close = "Press ESC or F2 to close",
     settings_saved = "Settings saved!",
+    
+    -- Scoreboard Pause (S key)
+    scoreboard_pause_title = "⭐ Scoreboard ⭐",
+    scoreboard_continue = "Click or press S to continue",
+    scoreboard_encouragement = {
+        "Great work!",
+        "Fantastic!",
+        "You're awesome!",
+        "Keep it up!",
+        "Really good!"
+    },
+    scoreboard_rank_excellent = "You're number %d! Excellent work!",
+    scoreboard_rank_great = "Number %d! Great job, keep going!",
+    scoreboard_rank_good = "You're at position %d. Keep pushing!",
+    scoreboard_rank_keep_going = "You're at position %d. You can go higher!",
     
     -- UI Messages
     player_select_hint = "↑↓ to select, Enter to choose",

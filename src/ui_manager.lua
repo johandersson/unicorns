@@ -350,6 +350,115 @@ function UIManager:drawHighScoreCelebration(score_data, dialog_renderer)
     love.graphics.printf(self._locale_cache.play_again, dialog_x, dialog_y + 220, dialog_w, 'center')
 end
 
+function UIManager:drawScoreboardPause(player_name, current_score, scoreboardManager, dialog_renderer)
+    -- Dim background
+    love.graphics.setColor(0, 0, 0, 0.75)
+    love.graphics.rectangle('fill', 0, 0, self.width, self.height)
+    
+    local dialog_w = math.min(600, self.width - 60)
+    local dialog_h = math.min(500, self.height - 60)
+    local dialog_x = (self.width - dialog_w) / 2
+    local dialog_y = (self.height - dialog_h) / 2
+    
+    -- Draw dialog background
+    local color = {0.2, 0.5, 0.8}  -- Blue theme
+    dialog_renderer:drawRetroDialog(dialog_x, dialog_y, dialog_w, dialog_h, color, {0.05, 0.1, 0.2})
+    
+    -- Title
+    love.graphics.setFont(self.font_large)
+    love.graphics.setColor(1, 1, 0)
+    love.graphics.printf(self.L.scoreboard_pause_title or "⭐ Scoreboard ⭐", dialog_x, dialog_y + 20, dialog_w, 'center')
+    
+    -- Get player rank and total players
+    local all_scores = scoreboardManager:getTopScores(100)
+    local player_rank = nil
+    local total_players = #all_scores
+    
+    for i, score_data in ipairs(all_scores) do
+        if score_data.name == player_name then
+            player_rank = i
+            break
+        end
+    end
+    
+    -- Encouraging message
+    local encouragement_msgs = self.L.scoreboard_encouragement or {"Great work!"}
+    local encouragement = encouragement_msgs[math.random(#encouragement_msgs)]
+    
+    love.graphics.setFont(self.font_large)
+    love.graphics.setColor(0.4, 1, 0.4)  -- Bright green
+    love.graphics.printf(encouragement, dialog_x + 20, dialog_y + 65, dialog_w - 40, 'center')
+    
+    -- Rank message
+    if player_rank then
+        local rank_msg
+        if player_rank == 1 then
+            rank_msg = string.format(self.L.scoreboard_rank_excellent or "You're number %d! Excellent work!", player_rank)
+        elseif player_rank <= 3 then
+            rank_msg = string.format(self.L.scoreboard_rank_great or "Number %d! Great job!", player_rank)
+        elseif player_rank <= 10 then
+            rank_msg = string.format(self.L.scoreboard_rank_good or "Position %d. Keep pushing!", player_rank)
+        else
+            rank_msg = string.format(self.L.scoreboard_rank_keep_going or "Position %d. You can go higher!", player_rank)
+        end
+        
+        love.graphics.setFont(self.font_small)
+        love.graphics.setColor(1, 1, 0.7)
+        love.graphics.printf(rank_msg, dialog_x + 20, dialog_y + 110, dialog_w - 40, 'center')
+    end
+    
+    -- Current score
+    love.graphics.setColor(1, 0.84, 0)
+    love.graphics.printf(string.format(self.L.score_label or "Score: %d", current_score), dialog_x, dialog_y + 145, dialog_w, 'center')
+    
+    -- Top scores list
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.printf(self.L.highscore_board or "High Scores", dialog_x, dialog_y + 180, dialog_w, 'center')
+    
+    local y = dialog_y + 210
+    local max_show = 5
+    for i = 1, math.min(max_show, #all_scores) do
+        local score_data = all_scores[i]
+        
+        -- Draw medal for top 3
+        if i <= 3 then
+            self.iconRenderer:drawMedalIcon(dialog_x + 80, y - 2, i, 16)
+        end
+        
+        -- Highlight current player
+        if score_data.name == player_name then
+            love.graphics.setColor(1, 1, 0)
+        else
+            love.graphics.setColor(0.9, 0.9, 0.9)
+        end
+        
+        local text = string.format("#%d  %s - %d", i, score_data.name, score_data.highscore)
+        love.graphics.printf(text, dialog_x + 100, y, dialog_w - 100, 'left')
+        y = y + 24
+    end
+    
+    -- Continue button
+    local button_w = 250
+    local button_h = 40
+    local button_x = dialog_x + (dialog_w - button_w) / 2
+    local button_y = dialog_y + dialog_h - 70
+    
+    -- Button background
+    love.graphics.setColor(0.2, 0.8, 0.2)
+    love.graphics.rectangle('fill', button_x, button_y, button_w, button_h, 8, 8)
+    
+    -- Button border
+    love.graphics.setColor(0.4, 1, 0.4)
+    love.graphics.setLineWidth(3)
+    love.graphics.rectangle('line', button_x, button_y, button_w, button_h, 8, 8)
+    love.graphics.setLineWidth(1)
+    
+    -- Button text
+    love.graphics.setFont(self.font_large)
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.printf(self.L.scoreboard_continue or "Continue", button_x, button_y + 10, button_w, 'center')
+end
+
 function UIManager:resize(w, h)
     self.width = w
     self.height = h

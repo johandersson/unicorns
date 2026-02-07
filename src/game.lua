@@ -47,7 +47,9 @@ function Game:new()
         name_input_active = true,
         selected_player_index = 1,
         show_highscore_celebration = false,
-        welcome_scroll_offset = 1  -- For scrolling high scores on welcome screen
+        welcome_scroll_offset = 1,  -- For scrolling high scores on welcome screen
+        -- Scoreboard pause state
+        show_scoreboard_pause = false
     }
     obj.ground = obj.height - 50
     obj.sun_x = obj.width / 2
@@ -249,6 +251,22 @@ function Game:draw()
     -- Draw background
     self.backgroundRenderer:draw()
 
+    -- Draw scoreboard pause overlay (takes priority over everything except help/settings)
+    if self.show_scoreboard_pause and not (self.helpManager and self.helpManager.isVisible) and not (self.settingsManager and self.settingsManager.isVisible) then
+        local current_player = self.scoreboardManager.current_player
+        local current_score = self.scoreboardManager.session_score
+        self.uiManager:drawScoreboardPause(current_player, current_score, self.scoreboardManager, self.dialogRenderer)
+        
+        -- Draw help and settings on top if visible
+        if self.helpManager and self.helpManager.isVisible then
+            self.helpManager:draw()
+        end
+        if self.settingsManager and self.settingsManager.isVisible then
+            self.settingsManager:draw()
+        end
+        return
+    end
+
     -- Draw trolls
     if self.trollManager then
         self.trollManager:draw()
@@ -369,6 +387,20 @@ function Game:resize(w, h)
 end
 
 function Game:keypressed(key)
+    -- 'S' key to show scoreboard pause
+    if key == 's' and not self.name_input_active and not self.stateManager.show_welcome and not self.stateManager.game_over then
+        if self.show_scoreboard_pause then
+            -- Resume game
+            self.show_scoreboard_pause = false
+            self.stateManager.manual_pause = false
+        else
+            -- Show scoreboard
+            self.show_scoreboard_pause = true
+            self.stateManager.manual_pause = true
+        end
+        return
+    end
+    
     -- F1 for help
     if key == 'f1' then
         if self.helpManager then
@@ -518,6 +550,31 @@ function Game:wheelmoved(x, y)
     -- Delegate mouse wheel to help manager for scrolling
     if self.helpManager and self.helpManager.isVisible then
         self.helpManager:wheelmoved(x, y)
+    end
+end
+
+function Game:mousepressed(x, y, button)
+    if button == 1 then  -- Left click
+        -- Handle scoreboard pause continue button
+        if self.show_scoreboard_pause then
+            local dialog_w = math.min(600, self.width - 60)
+            local dialog_h = math.min(500, self.height - 60)
+            local dialog_x = (self.width - dialog_w) / 2
+            local dialog_y = (self.height - dialog_h) / 2
+            
+            local button_w = 250
+            local button_h = 40
+            local button_x = dialog_x + (dialog_w - button_w) / 2
+            local button_y = dialog_y + dialog_h - 70
+            
+            -- Check if click is inside continue button
+            if x >= button_x and x <= button_x + button_w and
+               y >= button_y and y <= button_y + button_h then
+                self.show_scoreboard_pause = false
+                self.stateManager.manual_pause = false
+                return
+            end
+        end
     end
 end
 
