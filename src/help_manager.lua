@@ -49,8 +49,8 @@ end
 function HelpManager:calculateContentHeight()
     local locale = self.game.locale or self.game.L
     if not locale or not locale.help_content then
-        -- Fallback if locale not yet loaded
-        self.contentHeight = 500
+        -- Use default height if locale not available
+        self.contentHeight = 800
         local viewportHeight = love.graphics.getHeight() * 0.7
         self.maxScroll = math.max(0, self.contentHeight - viewportHeight)
         return
@@ -105,13 +105,6 @@ function HelpManager:draw()
     local w, h = love.graphics.getWidth(), love.graphics.getHeight()
     local locale = self.game.locale or self.game.L
     
-    -- Fallback if locale not loaded
-    if not locale or not locale.help_content then
-        love.graphics.setColor(1, 1, 1)
-        love.graphics.printf("Loading...", 0, h/2, w, "center")
-        return
-    end
-    
     -- Dim background
     love.graphics.setColor(0, 0, 0, 0.8)
     love.graphics.rectangle("fill", 0, 0, w, h)
@@ -132,7 +125,8 @@ function HelpManager:draw()
     -- Title with unicorn icons
     love.graphics.setColor(1, 0.84, 0, 1)
     self.iconRenderer:drawUnicornIcon(dialogX + dialogW / 2 - 100, dialogY + 18, 20)
-    love.graphics.printf(locale.help_title, dialogX, dialogY + 20, dialogW, "center")
+    local help_title = (locale and locale.help_title) or " Help & Guide "
+    love.graphics.printf(help_title, dialogX, dialogY + 20, dialogW, "center")
     self.iconRenderer:drawUnicornIcon(dialogX + dialogW / 2 + 80, dialogY + 18, 20)
     
     -- Scrollable content area
@@ -147,7 +141,10 @@ function HelpManager:draw()
     -- Draw content with scroll offset
     love.graphics.setColor(1, 1, 1, 1)
     local y = contentY - self.scrollOffset
-    for i, line in ipairs(locale.help_content) do
+    
+    -- Ensure help_content exists
+    local help_content = (locale and locale.help_content) or {}
+    for i, line in ipairs(help_content) do
         if line == "" then
             y = y + self.lineHeight * 0.5
         elseif line:match("^[A-ZÅÄÖ]+:$") or line:match("^•") then
@@ -179,11 +176,13 @@ function HelpManager:draw()
     
     -- Copyright footer
     love.graphics.setColor(0.7, 0.7, 0.7, 1)
-    love.graphics.printf(locale.help_copyright, dialogX, dialogY + dialogH - 60, dialogW, "center")
+    local copyright = (locale and locale.help_copyright) or "© 2026"
+    love.graphics.printf(copyright, dialogX, dialogY + dialogH - 60, dialogW, "center")
     
     -- Close instruction
     love.graphics.setColor(1, 0.84, 0, 1)
-    love.graphics.printf(locale.help_close, dialogX, dialogY + dialogH - 35, dialogW, "center")
+    local close_msg = (locale and locale.help_close) or "Press ESC or F1 to close"
+    love.graphics.printf(close_msg, dialogX, dialogY + dialogH - 35, dialogW, "center")
 end
 
 return HelpManager
