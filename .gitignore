@@ -12,6 +12,7 @@ Thumbs.db
 .vscode/
 .idea/
 .copilot/
+.github/
 
 # Build
 dist/
