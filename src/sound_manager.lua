@@ -42,6 +42,9 @@ function SoundManager:generateSounds()
     
     -- Sun reach sound: gentle, smooth, pleasant chime
     self.sounds.sun = self:generateSmoothChime()
+    
+    -- Troll warning sound: ominous, low growl
+    self.sounds.troll = self:generateTrollGrowl()
 end
 
 function SoundManager:generateTone(duration, startFreq, endFreq, volume)
@@ -97,6 +100,41 @@ function SoundManager:generateSmoothChime()
             math.sin(2 * math.pi * freq2 * t) * 0.3 +
             math.sin(2 * math.pi * freq3 * t) * 0.2
         ) * envelope
+        
+        soundData:setSample(i, sample)
+    end
+    
+    return love.audio.newSource(soundData)
+end
+
+function SoundManager:generateTrollGrowl()
+    local duration = 0.25
+    local sampleRate = 22050
+    local samples = math.floor(duration * sampleRate)
+    local soundData = love.sound.newSoundData(samples, sampleRate, 16, 1)
+    
+    for i = 0, samples - 1 do
+        local t = i / sampleRate
+        local progress = i / samples
+        
+        -- Envelope: quick attack, sustained, quick release
+        local envelope = 1.0
+        if progress < 0.05 then
+            envelope = progress / 0.05
+        elseif progress > 0.85 then
+            envelope = (1.0 - progress) / 0.15
+        end
+        
+        -- Low frequency rumble with slight modulation for "growl" effect
+        local base_freq = 150
+        local modulation = math.sin(2 * math.pi * 8 * t) * 30
+        local freq = base_freq + modulation
+        
+        -- Add some noise for gritty texture
+        local noise = (math.random() * 2 - 1) * 0.15
+        
+        -- Mix sine wave with noise
+        local sample = (math.sin(2 * math.pi * freq * t) * 0.7 + noise * 0.3) * envelope * 0.35
         
         soundData:setSample(i, sample)
     end

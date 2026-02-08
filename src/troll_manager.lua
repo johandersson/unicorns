@@ -28,7 +28,8 @@ function TrollManager:new(game)
         pool = {},
         base_speed = game.troll_base_speed or 200,
         spawn_timer = 0,
-        spawn_interval = game.troll_spawn_interval or 4.0
+        spawn_interval = game.troll_spawn_interval or 4.0,
+        troll_sound_cooldown = 0  -- Prevent sound spam
     }
     setmetatable(obj, self)
     return obj
@@ -50,6 +51,35 @@ function TrollManager:add(x, y, speed)
 end
 
 function TrollManager:update(dt)
+    -- Update sound cooldown
+    if self.troll_sound_cooldown > 0 then
+        self.troll_sound_cooldown = self.troll_sound_cooldown - dt
+    end
+    
+    -- Check for close trolls to play warning sound
+    local closest_dist_sq = math.huge
+    for _, entry in ipairs(self.trolls) do
+        if entry.active then
+            local t = entry.troll
+            local dx = self.game.unicorn.x - t.x
+            local dy = self.game.unicorn.y - t.y
+            local dist_sq = dx*dx + dy*dy
+            if dist_sq < closest_dist_sq then
+                closest_dist_sq = dist_sq
+            end
+        end
+    end
+    
+    -- Play warning sound if a troll is close but not colliding (between 100-150 pixels)
+    local warning_radius_sq = 120 * 120  -- 14400
+    local collision_radius_sq = 28 * 28   -- 784
+    if closest_dist_sq < warning_radius_sq and closest_dist_sq > collision_radius_sq and self.troll_sound_cooldown <= 0 then
+        if self.game.soundManager then
+            self.game.soundManager:play('troll')
+            self.troll_sound_cooldown = 1.5  -- Play sound max once every 1.5 seconds
+        end
+    end
+    
     local i = 1
     while i <= #self.trolls do
         local entry = self.trolls[i]
