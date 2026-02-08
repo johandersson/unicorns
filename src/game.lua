@@ -161,8 +161,11 @@ function Game:update(dt)
         self.trollManager:update(dt)
     end
 
-    -- Check if reached the sun (trigger once per pass)
-    local touching_sun = self.unicorn.y < self.sun_y + 80 and math.abs(self.unicorn.x - self.sun_x) < 80
+    -- Check if reached the sun using circular collision (allows flying from any direction)
+    local dx = self.unicorn.x - self.sun_x
+    local dy = self.unicorn.y - self.sun_y
+    local sun_radius = 80  -- Generous collision radius
+    local touching_sun = (dx*dx + dy*dy) < (sun_radius * sun_radius)
     
     if touching_sun and not self.sun_just_touched then
         self.sun_just_touched = true
