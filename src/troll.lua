@@ -58,9 +58,9 @@ function Troll:update(dt, target)
 end
 
 local function setColorHex(hex)
-    local r = ((hex >> 16) & 0xFF) / 255
-    local g = ((hex >> 8) & 0xFF) / 255
-    local b = (hex & 0xFF) / 255
+    local r = (math.floor(hex / 65536) % 256) / 255
+    local g = (math.floor(hex / 256) % 256) / 255
+    local b = (hex % 256) / 255
     love.graphics.setColor(r, g, b)
 end
 
