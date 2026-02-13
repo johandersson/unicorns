@@ -29,6 +29,7 @@ return {
     correct_answer_label = "The correct answer was:",
     quiz_correct_msgs = {"Nice! +100 coins","Boom! +100 coins","Correct! +100 coins"},
     quiz_wrong_msgs = {"Oops! Not quite.", "Close, but no cookie.", "Nope — better luck next time."},
+    quiz_incorrect_alert = "Wrong! The correct answer was:",
     timeout_msgs = {"Time! Try faster next time.", "Out of time!", "Too slow!"},
 
     -- Scoreboard

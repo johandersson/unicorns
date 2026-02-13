@@ -21,14 +21,15 @@ return {
     collect_more = "Skaffa %d fler mynt för att gå vidare",
 
     level_up_title = "Nivå upp!",
-    level_up_msg = "Nivå %d nådd!",
+    level_up_msg = "Du har kommit till nästa nivå!",
 
     quiz_title = "Matteutmaning!",
     time_label = "Tid: %ds",
     quiz_hint = "Skriv svaret och tryck Enter. +100 mynt vid rätt svar.",
     correct_answer_label = "Det rätta svaret var:",
-    quiz_correct_msgs = {"Rätt! +100 mynt", "Bra! +100 mynt", "Korrekt! +100 mynt"},
+    quiz_correct_msgs = {"Jippie! +100 mynt", "Bra! +100 mynt", "Tjoho! +100 mynt"},
     quiz_wrong_msgs = {"Oj! Inte rätt.", "Nästan, försök igen.", "Fel — prova igen."},
+    quiz_incorrect_alert = "Fel! Det rätta svaret är:",
     timeout_msgs = {"Tiden slut! Försök snabbare.", "Förlorad tid!", "För långsamt!"},
 
     -- Scoreboard

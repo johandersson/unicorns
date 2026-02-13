@@ -167,17 +167,19 @@ function DialogRenderer:drawQuizResult(result_data, locale_cache, font_large, fo
     love.graphics.setFont(font_large)
     local msg_color = result_data.show_answer and {1, 0.5, 0.5} or {0.5, 1, 0.5}
     love.graphics.setColor(msg_color[1], msg_color[2], msg_color[3])
-    love.graphics.printf(result_data.message or "", result_x, result_y + 30, result_w, 'center')
-    
-    -- Show correct answer if wrong
+
+    -- If we're showing the correct answer, use the message as the heading
+    -- and then print the numeric answer below. Avoid duplicating the
+    -- "correct answer" label when the message already communicates it.
     if result_data.show_answer and result_data.correct_answer then
-        love.graphics.setFont(font_small)
-        love.graphics.setColor(1, 1, 0.6)
-        love.graphics.printf(locale_cache.correct_answer_label, result_x, result_y + 80, result_w, 'center')
-        
+        -- Use provided message (should be something like "Wrong! The correct answer is:")
+        love.graphics.printf(result_data.message or (locale_cache.correct_answer_label or ""), result_x, result_y + 30, result_w, 'center')
+
         love.graphics.setFont(font_large)
         love.graphics.setColor(1, 1, 1)
-        love.graphics.printf(tostring(result_data.correct_answer), result_x, result_y + 110, result_w, 'center')
+        love.graphics.printf(tostring(result_data.correct_answer), result_x, result_y + 80, result_w, 'center')
+    else
+        love.graphics.printf(result_data.message or "", result_x, result_y + 30, result_w, 'center')
     end
 end
 

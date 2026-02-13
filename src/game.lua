@@ -570,9 +570,9 @@ function Game:keypressed(key)
                 self.quiz_result_msg = msgs[math.random(#msgs)]
                 self.quiz_show_answer = false
             else
-                -- Wrong - show correct answer
-                local msgs = self.L.quiz_wrong_msgs or {"Oops! Not quite.", "Close, but no cookie.", "Nope — better luck next time."}
-                self.quiz_result_msg = msgs[math.random(#msgs)]
+                -- Wrong - show explicit alert and reveal correct answer
+                local alert = (self.L and self.L.quiz_incorrect_alert) or "Wrong! The correct answer was:"
+                self.quiz_result_msg = alert
                 self.quiz_show_answer = true
                 self.quiz_correct_answer = self.quiz_answer
             end
