@@ -73,7 +73,11 @@ function SettingsManager:setLanguage(lang)
     
     -- Update references in other managers
     if self.game.uiManager then
-        self.game.uiManager.locale = self.game.locale
+        self.game.uiManager.L = self.game.locale
+        -- Refresh cached locale strings
+        if self.game.uiManager.updateLocaleCache then
+            self.game.uiManager:updateLocaleCache()
+        end
     end
     self.game.L = self.game.locale
 end

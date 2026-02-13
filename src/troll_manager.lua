@@ -86,11 +86,18 @@ function TrollManager:update(dt)
         local t = entry.troll
         if entry.active then
             t:update(dt, self.game.unicorn)
-            -- Collision detection with buffer for fast-moving trolls
+            -- Collision detection: use combined radii of troll and unicorn (prevents false negatives/positives)
             local dx = self.game.unicorn.x - t.x
             local dy = self.game.unicorn.y - t.y
-            -- Use troll-specific collision radius when available (fallback to default)
-            local collision_radius_sq = t.collision_radius_sq or (45 * 45)
+            local ux = self.game.unicorn.x
+            local uy = self.game.unicorn.y
+            -- Unicorn approximate radius (use largest half-dimension)
+            local unicorn_radius = math.max(self.game.unicorn.width or 20, self.game.unicorn.height or 20) * 0.5
+            local troll_radius = t.radius or math.sqrt(t.collision_radius_sq or (45 * 45))
+            -- add small buffer to account for sprite padding and movement
+            local buffer = 6
+            local collision_radius = unicorn_radius + troll_radius + buffer
+            local collision_radius_sq = collision_radius * collision_radius
             if dx*dx + dy*dy < collision_radius_sq then
                 table.insert(self.pool, t)
                 self.trolls[i] = self.trolls[#self.trolls]

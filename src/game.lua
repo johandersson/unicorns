@@ -533,6 +533,24 @@ function Game:keypressed(key)
     
     -- If quiz is active, handle textbox input here
     if self.quiz_active then
+        -- If a result is currently displayed, allow Enter to dismiss immediately
+        if self.quiz_result_timer and self.quiz_result_timer > 0 then
+            if key == 'return' or key == 'kpenter' then
+                -- Immediately clear result and resume game (same as Quiz:update when timer expires)
+                self.quiz_result_timer = 0
+                self.quiz_result_msg = nil
+                self.quiz_active = false
+                self.stateManager.paused = false
+                self.unicorn = require('src.unicorn'):new(self.width / 2, self.height / 2, self.ground, self.width)
+                if self.trollManager then
+                    local speed = (self.troll_base_speed or (self.progressionSystem and self.progressionSystem.troll_base_speed)) or 200
+                    self.trollManager:add(math.random(0, self.width), -80, speed)
+                end
+                return
+            end
+            -- while result is shown, ignore other inputs
+            return
+        end
         if key == 'backspace' then
             self.quiz_input = self.quiz_input:sub(1, -2)
             return
