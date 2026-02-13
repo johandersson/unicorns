@@ -64,7 +64,7 @@ Player names and high scores are automatically saved to `scoreboard/highscores.t
   - Download and install LuaRocks from [luarocks.org](https://luarocks.org/)
   - Run `luarocks install busted` to install the Busted testing framework
 
-This project is built for LÖVE 11.x. Visual assets include the unicorn and troll sprites in the `graphics/` folder; all other elements (UI, coins, rainbow, background) are drawn procedurally.
+This project is built for LÖVE 11.x. Visual assets include the unicorn sprite in the `graphics/` folder; trolls are drawn procedurally and all other elements (UI, coins, rainbow, background) are drawn procedurally.
 
 ## Running the Game
 
@@ -118,7 +118,6 @@ spec/                    # Unit tests
   └── main_spec.lua
 graphics/                # Sprite assets
   ├── unicorn-sprite.png # Player sprite
-  └── troll.png         # 12-frame troll animation sprite sheet
 images/                  # Documentation screenshots
 assets/                  # Game assets
   └── sounds/           # Sound files (currently unused, all procedural)
@@ -175,19 +174,3 @@ You should have received a copy of the GNU General Public License along with thi
 - Licensing: Creative Commons Attribution (CC BY) version 3.0
 - Copyright/Attribution: magdum
 - Source: [OpenGameArt.org](https://opengameart.org/content/running-unicorn)
-- Usage: Cached globally for performance, rendered with circular collision detection
-
-**Troll sprite sheet:** `graphics/troll.png`
-- Licensing: Creative Commons Attribution (CC BY) version 3.0
-- Copyright/Attribution: Original Muscleman/Ogre/Minotaur by Tuomo Untinen (Reemax), reworked by Jordan Irwin (AntumDeluge)
-- Source: [OpenGameArt.org](https://opengameart.org/)
-- Animation: 12-frame sprite sheet with auto-detected layout (4×3, 3×4, 6×2, etc.), cycles at 12.5 fps, scaled to 75%
-- Collision: Circular distance-based detection with proximity warning sound at 120px radius
-
-### Procedural Assets
-
-- **Icons**: Star, gear, arrows, medals, and unicorn icons drawn programmatically with canvas caching
-- **Rainbow background**: Dynamically rendered with pre-calculated color gradients
-- **UI elements**: Retro-style dialog boxes with gradient fills and borders
-- **Coins**: Procedurally drawn with rotation animation
-- **Sound effects**: All audio generated using LÖVE's SoundData API (see Sound Effects section above)
