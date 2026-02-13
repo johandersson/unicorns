@@ -20,6 +20,9 @@ return {
     gain_lives = "+%d liv",
     collect_more = "Skaffa %d fler mynt för att gå vidare",
 
+    level_up_title = "Nivå upp!",
+    level_up_msg = "Nivå %d nådd!",
+
     quiz_title = "Matteutmaning!",
     time_label = "Tid: %ds",
     quiz_hint = "Skriv svaret och tryck Enter. +100 mynt vid rätt svar.",

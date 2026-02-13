@@ -100,8 +100,16 @@ function Unicorn:draw()
 end
 
 function Unicorn:drawUnicorn()
+    -- Ensure no accidental tinting from previous draw calls
+    love.graphics.setColor(1, 1, 1, 1)
+    if self.is_dying then
+        -- Tint red while dying
+        love.graphics.setColor(1, 0.2, 0.2, 1)
+    end
     local quad = self.vy < 0 and self.quadDown or self.quadUp
     love.graphics.draw(self.sprite, quad, self.x - self.width/2, self.y - self.height/2)
+    -- Reset color to opaque white for subsequent draws
+    love.graphics.setColor(1, 1, 1, 1)
 end
 
 return Unicorn

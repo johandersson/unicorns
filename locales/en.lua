@@ -20,6 +20,9 @@ return {
     gain_lives = "+%d lives",
     collect_more = "Collect %d more coins to level up",
 
+    level_up_title = "Level Up!",
+    level_up_msg = "Stage %d reached!",
+
     quiz_title = "Math Challenge!",
     time_label = "Time: %ds",
     quiz_hint = "Type the answer and press Enter. +100 coins for correct.",

@@ -122,6 +122,7 @@ function Game:update(dt)
 
     local hit_ground = self.unicorn:update(dt)
     if hit_ground then
+        if self.unicorn then self.unicorn.is_dying = true end
         local is_game_over = self.stateManager:takeDamage()
         if is_game_over then
             -- Play death sound on game over
@@ -211,9 +212,12 @@ function Game:update(dt)
 
             -- Show retro level-up alert and defer quiz start until alert completes
             self.stateManager.paused = true
+            local title = (self.L and self.L.level_up_title) or "Level Up!"
+            local msgfmt = (self.L and self.L.level_up_msg) or "Stage %d reached!"
+            local message = string.format(msgfmt, self.progressionSystem.stage)
             self.level_up_alert = {
-                title = (self.L and self.L.level_up_title) or "Level Up!",
-                message = (self.L and self.L.level_up_msg) or ("Stage " .. tostring(self.progressionSystem.stage) .. " reached!"),
+                title = title,
+                message = message,
                 timer = 2.0
             }
             self.level_up_pending_quiz = true
