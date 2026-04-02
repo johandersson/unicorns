@@ -85,30 +85,28 @@ function TrollManager:update(dt)
         local t = entry.troll
         if entry.active then
             t:update(dt, self.game.unicorn)
-            -- Collision detection: use drawn troll position (includes bob) and a slightly smaller buffer
+            -- Collision detection: AABB matching visible body shapes
             local bob = 0
             if t.bob_timer and t.bob_amount then
                 bob = math.sin(t.bob_timer) * t.bob_amount
             end
             local tx = t.x
             local ty = t.y + bob
-            local dx = self.game.unicorn.x - tx
-            local dy = self.game.unicorn.y - ty
+            local r = t.radius or 24
 
-            -- Unicorn approximate radius (use largest half-dimension)
-            local unicorn_radius = math.max(self.game.unicorn.width or 20, self.game.unicorn.height or 20) * 0.5
-            -- Prefer the troll's actual collision radius (sqrt of stored squared value) if present
-            local troll_radius = nil
-            if t.collision_radius_sq then
-                troll_radius = math.sqrt(t.collision_radius_sq)
-            else
-                troll_radius = t.radius or 45
-            end
-            -- reduce buffer to avoid surprising hits
-            local buffer = 0
-            local collision_radius = unicorn_radius + troll_radius + buffer
-            local collision_radius_sq = collision_radius * collision_radius
-            if dx*dx + dy*dy < collision_radius_sq then
+            -- Troll hitbox covers head + torso (not arms/legs), shrunk for fairness
+            local troll_half_w = r * 0.65
+            local troll_half_h = r * 0.85
+
+            -- Unicorn hitbox slightly inside sprite edges so near-misses feel fair
+            local ux = self.game.unicorn.x
+            local uy = self.game.unicorn.y
+            local uni_half_w = (self.game.unicorn.width or 40) * 0.35
+            local uni_half_h = (self.game.unicorn.height or 30) * 0.35
+
+            -- AABB overlap test
+            if math.abs(ux - tx) < (uni_half_w + troll_half_w) and
+               math.abs(uy - ty) < (uni_half_h + troll_half_h) then
                 table.insert(self.pool, t)
                 self.trolls[i] = self.trolls[#self.trolls]
                 table.remove(self.trolls)

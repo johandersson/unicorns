@@ -43,24 +43,20 @@ function Coin:update(dt)
 end
 
 function Coin:isCollectedBy(unicorn)
-    -- Simple circle-circle collision (works from ANY direction - much more player-friendly)
-    -- Treat unicorn as a circle with VERY generous radius for easy collection
+    -- AABB collision using actual unicorn dimensions + generous pickup padding
     local ux = unicorn.x or 0
     local uy = unicorn.y or 0
-    local cx = self.x or 0
-    local cy = self.y or 0
-    
-    -- Calculate squared distance between centers
-    local dx = ux - cx
-    local dy = uy - cy
-    local dist_sq = dx*dx + dy*dy
-    
-    -- VERY generous collision radius for player-friendly gameplay
-    -- Unicorn effective radius (45) + coin radius (18) + tolerance (15) = 78 pixels total
-    local collision_radius = 45 + self.radius + 15
-    local collision_radius_sq = collision_radius * collision_radius
-    
-    return dist_sq <= collision_radius_sq
+
+    -- Unicorn collection area: true half-size + generous pickup margin
+    local uni_half_w = (unicorn.width or 40) * 0.5 + 25
+    local uni_half_h = (unicorn.height or 30) * 0.5 + 25
+
+    -- Coin collection extent
+    local coin_extent = self.radius + 5
+
+    -- Collect when unicorn area overlaps coin area
+    return math.abs(ux - self.x) < (uni_half_w + coin_extent) and
+           math.abs(uy - self.y) < (uni_half_h + coin_extent)
 end
 
 function Coin:draw()
