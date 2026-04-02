@@ -163,9 +163,10 @@ function Game:update(dt)
     end
 
     -- Check if reached the sun using circular collision (allows flying from any direction)
+    -- Visual sun radius is 40; use 48 so pickup feels fair without phantom triggers
     local dx = self.unicorn.x - self.sun_x
     local dy = self.unicorn.y - self.sun_y
-    local sun_radius = 80  -- Generous collision radius
+    local sun_radius = 48
     local touching_sun = (dx*dx + dy*dy) < (sun_radius * sun_radius)
     
     if touching_sun and not self.sun_just_touched then
