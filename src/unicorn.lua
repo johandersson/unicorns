@@ -41,7 +41,11 @@ function Unicorn:new(x, y, ground, width)
         vx = 0,
         vy = 0,
         speed = 320,
+        walk_speed = 160,
+        fly_speed = 320,
         gravity = 400,  -- Strong gravity for challenge
+        fall_multiplier = 1.6,
+        fall_boost = 120,
         width = 40,
         height = 30,
         ground = ground or 550,
@@ -52,25 +56,40 @@ function Unicorn:new(x, y, ground, width)
     }
     setmetatable(obj, self)
     self.__index = self
+    -- Animation state
+    obj.animTimer = 0
+    obj.animInterval = 0.12
+    obj.current_quad = obj.quadUp
+    obj.on_ground = false
+    obj._was_up = false
     return obj
 end
 
 function Unicorn:update(dt)
-    -- Horizontal movement
+    -- Horizontal movement (walk on ground, run in air)
+    local move_speed = self.speed
+    if self.on_ground then move_speed = self.walk_speed end
     if love.keyboard.isDown('left') then
-        self.vx = -self.speed
+        self.vx = -move_speed
     elseif love.keyboard.isDown('right') then
-        self.vx = self.speed
+        self.vx = move_speed
     else
         self.vx = 0
     end
 
     -- Vertical movement (flying up only, gravity pulls down)
-    if love.keyboard.isDown('up') then
-        self.vy = -self.speed
+    local up = love.keyboard.isDown('up')
+    if up then
+        self.vy = -self.fly_speed
     else
-        -- Apply gravity
-        self.vy = self.vy + self.gravity * dt
+        -- Apply stronger gravity when falling (makes falling quicker after flying)
+        local gravity_to_use = self.gravity
+        if self.vy > 0 then gravity_to_use = gravity_to_use * self.fall_multiplier end
+        self.vy = self.vy + gravity_to_use * dt
+        -- If the player just released the fly key, give a small extra downward push
+        if self._was_up and not up then
+            self.vy = self.vy + self.fall_boost
+        end
     end
 
     -- Update position
@@ -84,14 +103,44 @@ function Unicorn:update(dt)
     -- Clamp bounds (optimized with single assignment)
     self.x = math.max(half_w, math.min(new_x, self.screen_width - half_w))
     
-    -- Check ground collision BEFORE clamping (only die if actually hitting ground)
+    -- Check ground collision BEFORE clamping
     local hit_ground = false
     if new_y + half_h >= self.ground then
         hit_ground = true
     end
-    
-    self.y = math.max(half_h, math.min(new_y, self.ground - half_h))
-    
+
+    self.y = math.max(half_w, math.min(new_y, self.ground - half_h))
+    if hit_ground then
+        self.vy = 0
+    end
+
+    -- Update on_ground flag for animation and movement logic
+    self.on_ground = hit_ground
+
+    -- Animation: when on ground and moving horizontally, animate between quads
+    if self.on_ground and math.abs(self.vx) > 0 then
+        self.animTimer = self.animTimer + dt
+        if self.animTimer >= self.animInterval then
+            self.animTimer = self.animTimer - self.animInterval
+            if self.current_quad == self.quadUp then
+                self.current_quad = self.quadDown
+            else
+                self.current_quad = self.quadUp
+            end
+        end
+    else
+        -- Reset to idle frame when not walking
+        if self.vy < 0 then
+            self.current_quad = self.quadDown
+        else
+            self.current_quad = self.quadUp
+        end
+        self.animTimer = 0
+    end
+
+    -- track previous up state
+    self._was_up = up
+
     return hit_ground
 end
 
@@ -106,7 +155,7 @@ function Unicorn:drawUnicorn()
         -- Tint red while dying
         love.graphics.setColor(1, 0.2, 0.2, 1)
     end
-    local quad = self.vy < 0 and self.quadDown or self.quadUp
+    local quad = self.current_quad or (self.vy < 0 and self.quadDown or self.quadUp)
     love.graphics.draw(self.sprite, quad, self.x - self.width/2, self.y - self.height/2)
     -- Reset color to opaque white for subsequent draws
     love.graphics.setColor(1, 1, 1, 1)
