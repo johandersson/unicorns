@@ -75,6 +75,7 @@ function Game:new()
     obj.helpManager = require('src.help_manager'):new(obj)
     obj.soundManager = require('src.sound_manager'):new()
     obj.coinManager = require('src.coin_manager'):new(obj.width, obj.height, 18, 30.0, 12.0, obj)
+    obj.level_up_flash = nil
     
     -- Update uiManager locale after settings load
     obj.uiManager.locale = obj.locale
@@ -221,6 +222,8 @@ function Game:update(dt)
                 message = message,
                 timer = 2.0
             }
+            -- small visual flash state used for pulsing overlay and celebration icon
+            self.level_up_flash = { t = 0 }
             self.level_up_pending_quiz = true
             -- quiz will start after alert expires (handled in update loop)
         elseif self.progressionSystem:needsMoreCoins(progress_coins) then
@@ -248,9 +251,13 @@ function Game:update(dt)
     -- If a level-up alert is active, count it down and start the quiz when done
     if self.level_up_alert then
         self.level_up_alert.timer = self.level_up_alert.timer - dt
+        if self.level_up_flash then
+            self.level_up_flash.t = self.level_up_flash.t + dt
+        end
         if self.level_up_alert.timer <= 0 then
             -- clear alert and start quiz if pending
             self.level_up_alert = nil
+            self.level_up_flash = nil
             if self.level_up_pending_quiz then
                 self.level_up_pending_quiz = false
                 if self.quizManager then
@@ -366,6 +373,21 @@ function Game:draw()
 
     -- Level-up retro alert (displayed before the quiz)
     if self.level_up_alert then
+        -- Celebration visual: pulsing color overlay and floating star
+        if self.level_up_flash then
+            local t = self.level_up_flash.t
+            local alpha = 0.22 + 0.12 * math.sin(t * 6)
+            love.graphics.setColor(1, 0.9, 0.6, alpha)
+            love.graphics.rectangle('fill', 0, 0, self.width, self.height)
+            -- Draw a floating/pulsing star above the unicorn
+            local star_x = math.max(48, math.min(self.width - 48, self.unicorn.x))
+            local star_y = math.max(48, self.unicorn.y - 80)
+            local star_size = math.max(20, math.floor(40 + 8 * math.sin(t * 4)))
+            if self.uiManager and self.uiManager.iconRenderer then
+                self.uiManager.iconRenderer:drawStarIcon(star_x - star_size/2, star_y - star_size/2, star_size)
+            end
+            love.graphics.setColor(1, 1, 1, 1)
+        end
         local w = math.min(480, self.width - 80)
         local h = 120
         local x = (self.width - w) / 2
